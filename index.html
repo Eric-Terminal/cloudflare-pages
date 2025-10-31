@@ -24,7 +24,7 @@
     <!-- 【已修复】将 onload 事件绑定给 Turnstile 脚本，让它作为启动点 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileScriptLoad&render=explicit" async defer></script>
     <!-- 【已修复】Google 脚本在后台加载即可，无需 onload -->
-    <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+    <script src="https://www.recaptcha.net/recaptcha/api.js?render=explicit" async defer></script>
 </head>
 <body>
 
@@ -134,21 +134,9 @@
 
     // ----- 后端验证与最终场景 -----
     function verifyOnBackend(token, successCallback) {
-        fetch(workerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
-        })
-        .then(res => res.json())
-        .then(data => {
-            // 因为后端永远失败，所以我们直接调用成功回调进入下一阶段
-            messageEl.textContent = '验证不通过，系统正在尝试备用校验路径…';
-            setTimeout(successCallback, 1600); // 延迟进入下一关，模拟后端处理
-        })
-        .catch(err => {
-            messageEl.textContent = '通信超时，系统自动进入备用验证流程。';
-            setTimeout(successCallback, 1600);
-        });
+        // 直接模拟后端验证失败，无需真正发送网络请求
+        messageEl.textContent = '验证不通过，系统正在尝试备用校验路径…';
+        setTimeout(successCallback, 1600); // 延迟进入下一关，模拟后端处理
     }
 
     function showFinalMessage() {
