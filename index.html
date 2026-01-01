@@ -5,25 +5,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>身份验证中心</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f6f9; color: #1f2933; transition: background-color 0.5s, color 0.5s; }
-        .container { width: 420px; padding: 34px 38px; background-color: #fff; border-radius: 10px; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12); text-align: left; }
-        #title { font-size: 21px; margin: 0 0 10px; color: #111827; }
-        #subtitle { margin: 0 0 20px; color: #475569; line-height: 1.5; }
-        #message { margin-top: 20px; color: #c0262d; font-weight: 600; min-height: 20px; transition: color 0.3s; }
-        .helper { margin-top: 16px; font-size: 12px; color: #6b7280; line-height: 1.6; border-top: 1px solid #e5e7eb; padding-top: 14px; }
-        body.final-stage { background: radial-gradient(circle at 20% 20%, rgba(255, 107, 107, 0.18), transparent 65%), radial-gradient(circle at 80% 0%, rgba(56, 189, 248, 0.15), transparent 60%), #05060b; color: #e5e7ff; }
-        .final-stage-card { width: min(520px, 90vw); background: rgba(12, 16, 32, 0.82); border-radius: 18px; padding: 48px 44px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px); text-align: center; }
-        .final-mockery { color: #d5ddff; font-size: 18px; line-height: 1.8; }
-        .final-mockery strong { color: #ff6b6b; display: block; margin: 18px 0 12px; letter-spacing: 0.1em; font-size: 26px; text-transform: uppercase; }
-        .status-chip { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px; font-size: 12px; letter-spacing: 0.16em; background: rgba(255, 255, 255, 0.1); color: #fef3c7; border: 1px solid rgba(255, 255, 255, 0.18); }
-        .final-mockery p:last-child { margin-bottom: 0; color: #9fb4ff; }
-        .final-video { margin-top: 28px; border-radius: 14px; overflow: hidden; box-shadow: 0 22px 45px rgba(0, 0, 0, 0.4); }
-        .final-video video { width: 100%; display: block; }
-</style>
-    <!-- 两个验证脚本都提前加载好 -->
-    <!-- 【已修复】将 onload 事件绑定给 Turnstile 脚本，让它作为启动点 -->
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006b8a 100%);
+            background-attachment: fixed;
+            color: #1d1d1f; 
+            transition: background 0.6s ease, color 0.6s ease;
+            padding: 20px;
+        }
+        .container { 
+            width: 100%;
+            max-width: 480px; 
+            padding: 40px 44px; 
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 24px; 
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: left;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #title { 
+            font-size: 28px; 
+            font-weight: 600; 
+            margin: 0 0 12px; 
+            color: #1d1d1f;
+            letter-spacing: -0.02em;
+        }
+        #subtitle { 
+            margin: 0 0 28px; 
+            color: #6e6e73; 
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        #message { 
+            margin-top: 24px; 
+            color: #ff3b30; 
+            font-weight: 500; 
+            min-height: 20px; 
+            transition: color 0.3s ease;
+            font-size: 14px;
+        }
+        .helper { 
+            margin-top: 20px; 
+            font-size: 13px; 
+            color: #86868b; 
+            line-height: 1.6; 
+            border-top: 1px solid rgba(0, 0, 0, 0.08); 
+            padding-top: 18px;
+        }
+        body.final-stage { 
+            background: linear-gradient(135deg, #0a1828 0%, #1e3a5f 50%, #002642 100%);
+            color: #f5f5f7;
+        }
+        .final-stage-card { 
+            max-width: 620px;
+            background: rgba(29, 29, 31, 0.88);
+            backdrop-filter: saturate(180%) blur(30px);
+            -webkit-backdrop-filter: saturate(180%) blur(30px);
+            border-radius: 28px; 
+            padding: 56px 48px; 
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            text-align: center;
+        }
+        .final-mockery { 
+            color: #f5f5f7; 
+            font-size: 17px; 
+            line-height: 1.7;
+        }
+        .final-mockery strong { 
+            color: #ff453a; 
+            display: block; 
+            margin: 24px 0 16px; 
+            letter-spacing: 0.12em; 
+            font-size: 32px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-chip { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 8px 16px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 600;
+            letter-spacing: 0.08em; 
+            background: rgba(255, 69, 58, 0.15);
+            color: #ff9f0a; 
+            border: 1px solid rgba(255, 159, 10, 0.3);
+            text-transform: uppercase;
+        }
+        .final-mockery p:last-child { 
+            margin-bottom: 0; 
+            color: #a1a1a6;
+        }
+        .final-video { 
+            margin-top: 32px; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+        .final-video video { 
+            width: 100%; 
+            display: block;
+        }
+    </style>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileScriptLoad&render=explicit" async defer></script>
-    <!-- 【已修复】Google 脚本在后台加载即可，无需 onload -->
     <script src="https://www.recaptcha.net/recaptcha/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -31,55 +127,44 @@
 <div class="container" id="main-container">
     <h1 id="title">访问安全确认</h1>
     <p id="subtitle">系统正在对当前会话进行风险复核，请按照组件提示完成对应操作。</p>
-
-    <!-- Cloudflare Turnstile 容器 -->
     <div id="turnstile-container"></div>
-
-    <!-- Google reCAPTCHA 容器，默认隐藏 -->
     <div id="recaptcha-container" style="display: none;"></div>
-
     <div id="message"></div>
     <div class="helper" id="helper">若验证失败请耐心等待系统自动重试，无需刷新页面。</div>
 </div>
 
 <script>
-    const workerUrl = 'https://betrayal-server.ericterminal.workers.dev/'; // <--- 替换成你的 WORKER URL
-    const cfSiteKey = '0x4AAAAAAB8gIz-w588B8gQ-';       // <--- 替换成你的 CLOUDFLARE SITE KEY
-    const googleSiteKey = '6Lf2dvYrAAAAAI4-JSRGx_0Cp4keDrsxgLsbfBSm'; // <--- 替换成你的 GOOGLE SITE KEY
-
-    // 获取 DOM 元素
+    const cfSiteKey = '0x4AAAAAAB8gIz-w588B8gQ-';
+    const googleSiteKey = '6Lf2dvYrAAAAAI4-JSRGx_0Cp4keDrsxgLsbfBSm';
     const titleEl = document.getElementById('title');
     const subtitleEl = document.getElementById('subtitle');
     const messageEl = document.getElementById('message');
     const helperEl = document.getElementById('helper');
     const turnstileContainer = document.getElementById('turnstile-container');
     const recaptchaContainer = document.getElementById('recaptcha-container');
-
-    // 状态管理
     let currentStage = 'cf-1'; 
     let turnstileWidgetId;
     let recaptchaWidgetId;
 
-    // ----- 核心逻辑：状态更新与UI切换 -----
     function updateUI() {
         messageEl.textContent = '';
         switch (currentStage) {
             case 'cf-1':
                 titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = '为确认请求来自可信终端，请按照 Cloudflare Turnstile 的提示完成操作。';
-                helperEl.textContent = '若组件未加载，请检查网络或稍后再试。系统将根据风险结果自动重试。';
+                subtitleEl.textContent = '检测到您的会话可能存在异常行为。请完成以下验证以继续访问。';
+                helperEl.textContent = '通常此验证仅需一次，完成后将自动跳转至目标页面。';
                 turnstileWidgetId = turnstile.render('#turnstile-container', { sitekey: cfSiteKey, callback: onTurnstileSuccess });
                 break;
             case 'cf-2':
-                titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = '系统检测到回话信号异常，Turnstile 将再次加载用于二次校验。';
-                helperEl.textContent = '请保持浏览器前台并完成验证，系统检测失败后会继续重试。';
+                titleEl.textContent = '二次验证确认';
+                subtitleEl.textContent = '您的网络环境存在轻微风险标记，需要进行额外的身份验证。这是最后一次 Turnstile 验证。';
+                helperEl.textContent = '完成后即可访问内容。若失败系统将切换为图像识别方式。';
                 turnstile.reset(turnstileWidgetId);
                 break;
             case 'google-1':
-                titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = '未通过 Turnstile 校验，系统已自动切换为 Google reCAPTCHA 图像识别。';
-                helperEl.textContent = '根据页面提示选择图像，直至 reCAPTCHA 不再出现新任务。';
+                titleEl.textContent = '高级身份验证';
+                subtitleEl.textContent = '系统已升级验证方式为 Google reCAPTCHA。完成图像选择后即可通过验证。';
+                helperEl.textContent = '请仔细选择符合要求的图片，通常 1-2 组即可完成。';
                 turnstileContainer.style.display = 'none';
                 recaptchaContainer.style.display = 'block';
                 if (recaptchaWidgetId === undefined) {
@@ -89,15 +174,15 @@
                 }
                 break;
             case 'google-2':
-                titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = 'reCAPTCHA 仍未通过，系统尝试再次比对请求行为，请继续完成图像验证。';
-                helperEl.textContent = '若持续出现问题，请检查代理、VPN 或刷新 reCAPTCHA 组件后再试。';
+                titleEl.textContent = '验证进度：66%';
+                subtitleEl.textContent = '系统正在核验您的选择，请再完成一组图像识别以确保准确性。';
+                helperEl.textContent = '您已接近完成验证，请继续。大部分用户在此步骤即可通过。';
                 grecaptcha.reset(recaptchaWidgetId);
                 break;
             case 'google-3':
-                titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = '系统正在进行最终的 reCAPTCHA 风险确认，请完成剩余图像任务。';
-                helperEl.textContent = '请耐心完成，系统将在校验结束后自动反馈结果。';
+                titleEl.textContent = '最终验证：98%';
+                subtitleEl.textContent = '即将完成！系统正在进行最后的安全校验，这是最后一组验证。';
+                helperEl.textContent = '验证成功后将立即跳转至内容页面，感谢您的耐心配合。';
                 grecaptcha.reset(recaptchaWidgetId);
                 break;
             case 'final-mockery':
@@ -106,37 +191,32 @@
         }
     }
 
-    // ----- 回调函数 -----
     function onTurnstileSuccess(token) {
-        messageEl.textContent = '正在校验 Turnstile 验证令牌...';
-        verifyOnBackend(token, () => {
-            if (currentStage === 'cf-1') currentStage = 'cf-2';
-            else if (currentStage === 'cf-2') currentStage = 'google-1';
-            updateUI();
-        });
+        messageEl.textContent = '✓ 验证成功，正在进行安全性复核...';
+        setTimeout(() => {
+            messageEl.textContent = '检测到异常指纹，需要额外验证…';
+            setTimeout(() => {
+                currentStage = currentStage === 'cf-1' ? 'cf-2' : 'google-1';
+                updateUI();
+            }, 1600);
+        }, 800);
     }
 
     function onRecaptchaSuccess(token) {
-        messageEl.textContent = '正在分析 reCAPTCHA 反馈数据...';
-        verifyOnBackend(token, () => {
-            if (currentStage === 'google-1') currentStage = 'google-2';
-            else if (currentStage === 'google-2') currentStage = 'google-3';
-            else if (currentStage === 'google-3') currentStage = 'final-mockery';
-            updateUI();
-        });
+        messageEl.textContent = '✓ 图像识别通过，正在验证用户身份...';
+        setTimeout(() => {
+            messageEl.textContent = '置信度不足，请继续完成下一组验证…';
+            setTimeout(() => {
+                if (currentStage === 'google-1') currentStage = 'google-2';
+                else if (currentStage === 'google-2') currentStage = 'google-3';
+                else if (currentStage === 'google-3') currentStage = 'final-mockery';
+                updateUI();
+            }, 1600);
+        }, 800);
     }
     
-    // 【已修复】Cloudflare脚本加载完成后，再初始化UI
     function onTurnstileScriptLoad() {
-        updateUI(); // 初始启动
-    }
-
-
-    // ----- 后端验证与最终场景 -----
-    function verifyOnBackend(token, successCallback) {
-        // 直接模拟后端验证失败，无需真正发送网络请求
-        messageEl.textContent = '验证不通过，系统正在尝试备用校验路径…';
-        setTimeout(successCallback, 1600); // 延迟进入下一关，模拟后端处理
+        updateUI();
     }
 
     function showFinalMessage() {
@@ -145,17 +225,17 @@
         container.classList.add('final-stage-card');
         container.innerHTML = `
             <div class="final-mockery">
-                <span class="status-chip">ACCESS DENIED</span>
-                <strong>验证不通过</strong>
-                <p>……当然不会通过。这里从头到尾就没打算放你过去。</p>
-                <p>你刚刚尽职尽责地点完了五轮验证，只是为了看到这一行字。</p>
-                <p>伙计，这页就是来恶心你的。下次记得别相信“系统会自动重试”。</p>
-                <p>好了，节目到此结束，散了吧。</p>
+                <span class="status-chip">Access Denied</span>
+                <strong>你被耍了</strong>
+                <p>恭喜你完成了五轮验证！不过很遗憾……</p>
+                <p>这个页面从一开始就没打算让你通过。</p>
+                <p>你刚才点的每一个验证码，都只是在给我们增加娱乐价值。</p>
+                <p>感谢你的参与，下次看到"验证进度98%"记得多个心眼😉</p>
             </div>
             <div class="final-video">
                 <video autoplay muted loop playsinline preload="auto">
-                    <source src="rick.mp4" type="video/mp4">
-                    你的浏览器不支持视频播放。
+                    <source src="./rick.webm" type="video/webm">
+                    <source src="./rick.mp4" type="video/mp4">
                 </video>
             </div>
         `;
