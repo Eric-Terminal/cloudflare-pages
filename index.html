@@ -172,6 +172,7 @@
                 } else {
                     grecaptcha.reset(recaptchaWidgetId);
                 }
+                preloadVideo();
                 break;
             case 'google-2':
                 titleEl.textContent = '验证进度：66%';
@@ -219,6 +220,15 @@
         updateUI();
     }
 
+    let preloadedVideo = null;
+    function preloadVideo() {
+        if (preloadedVideo) return;
+        preloadedVideo = document.createElement('video');
+        preloadedVideo.preload = 'auto';
+        preloadedVideo.src = './rick.mp4';
+        preloadedVideo.load();
+    }
+
     function showFinalMessage() {
         document.body.classList.add('final-stage');
         const container = document.getElementById('main-container');
@@ -234,7 +244,6 @@
             </div>
             <div class="final-video">
                 <video autoplay muted loop playsinline preload="auto">
-                    <source src="./rick.webm" type="video/webm">
                     <source src="./rick.mp4" type="video/mp4">
                 </video>
             </div>
