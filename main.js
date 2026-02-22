@@ -48,7 +48,6 @@ class VerifyLandingPage {
         this.pointerX = 0;
         this.pointerY = 0;
         this.hasPendingPointer = false;
-        this.isPointerOverCard = false;
         this.lastTiltX = 0;
         this.lastTiltY = 0;
         this.lastSpotX = 50;
@@ -205,18 +204,17 @@ class VerifyLandingPage {
             }
             this.pointerX = event.clientX;
             this.pointerY = event.clientY;
-            this.isPointerOverCard = this.isPointInsideCard(this.pointerX, this.pointerY);
-            this.hasPendingPointer = this.isPointerOverCard;
-            if (!this.isPointerOverCard) {
-                if (this.tiltRafId !== null) {
-                    window.cancelAnimationFrame(this.tiltRafId);
-                    this.tiltRafId = null;
-                }
-                this.resetTilt();
-                return;
-            }
+            this.hasPendingPointer = true;
             scheduleTiltUpdate();
         }, { passive: true });
+        window.addEventListener("blur", () => {
+            this.hasPendingPointer = false;
+            if (this.tiltRafId !== null) {
+                window.cancelAnimationFrame(this.tiltRafId);
+                this.tiltRafId = null;
+            }
+            this.resetTilt();
+        });
         window.addEventListener("pointerdown", refreshBounds, { passive: true });
         window.addEventListener("resize", refreshBounds, { passive: true });
         window.addEventListener("scroll", refreshBounds, { passive: true });
@@ -225,11 +223,17 @@ class VerifyLandingPage {
         if (!this.hasPendingPointer) {
             return;
         }
-        if (!this.tiltBounds) {
-            this.tiltBounds = this.card.getBoundingClientRect();
-        }
+        this.tiltBounds = this.card.getBoundingClientRect();
         const bounds = this.tiltBounds;
         if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+            return;
+        }
+        const isInsideBounds = this.pointerX >= bounds.left &&
+            this.pointerX <= bounds.right &&
+            this.pointerY >= bounds.top &&
+            this.pointerY <= bounds.bottom;
+        if (!isInsideBounds) {
+            this.resetTilt();
             return;
         }
         const relativeX = this.clamp((this.pointerX - bounds.left) / bounds.width, 0, 1);
@@ -252,16 +256,6 @@ class VerifyLandingPage {
         this.card.style.setProperty("--tilt-y", `${rotateY.toFixed(2)}deg`);
         this.card.style.setProperty("--spot-x", `${spotX.toFixed(1)}%`);
         this.card.style.setProperty("--spot-y", `${spotY.toFixed(1)}%`);
-    }
-    isPointInsideCard(x, y) {
-        if (!this.tiltBounds) {
-            this.tiltBounds = this.card.getBoundingClientRect();
-        }
-        const bounds = this.tiltBounds;
-        if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
-            return false;
-        }
-        return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
     }
     resetTilt() {
         if (this.lastTiltX === 0 &&
