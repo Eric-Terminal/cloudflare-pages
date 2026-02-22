@@ -1,4 +1,13 @@
 const THEME_STORAGE_KEY = "eric-terminal-home-theme";
+const TURNSTILE_SCRIPT_ID = "turnstile-api-script";
+const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileScriptLoad&render=explicit";
+const TURNSTILE_POLL_INTERVAL_MS = 250;
+const TURNSTILE_MAX_WAIT_MS = 5000;
+const TURNSTILE_MAX_RELOAD_RETRIES = 3;
+const TURNSTILE_RETRY_DELAY_MS = 700;
+const TURNSTILE_TOTAL_LOAD_ATTEMPTS = TURNSTILE_MAX_RELOAD_RETRIES + 1;
+const TURNSTILE_MAX_INIT_RETRIES = 3;
+const TURNSTILE_TOTAL_INIT_ATTEMPTS = TURNSTILE_MAX_INIT_RETRIES + 1;
 const RECAPTCHA_SCRIPT_ID = "recaptcha-api-script";
 const RECAPTCHA_SCRIPT_SRC = "https://www.recaptcha.net/recaptcha/api.js?render=explicit";
 const RECAPTCHA_POLL_INTERVAL_MS = 250;
@@ -48,6 +57,10 @@ class VerifyLandingPage {
         this.googleSiteKey = "6Lf2dvYrAAAAAI4-JSRGx_0Cp4keDrsxgLsbfBSm";
         this.stage = "cf-1";
         this.turnstileReady = false;
+        this.turnstileScriptPromise = null;
+        this.turnstileRetryCount = 0;
+        this.turnstileInitRetryCount = 0;
+        this.turnstileAttemptToken = 0;
         this.recaptchaScriptPromise = null;
         this.recaptchaRetryCount = 0;
         this.recaptchaInitRetryCount = 0;
@@ -67,6 +80,7 @@ class VerifyLandingPage {
         this.finalThemeToggleButton = null;
         this.handleTurnstileReady = () => {
             this.turnstileReady = true;
+            this.resetTurnstileLoadingState();
             this.renderStage();
         };
         this.handleThemeToggle = () => {
@@ -300,6 +314,7 @@ class VerifyLandingPage {
     }
     renderStage() {
         if (this.stage === "final-mockery") {
+            this.resetTurnstileLoadingState();
             this.resetRecaptchaLoadingState();
             this.showFinalStage();
             return;
@@ -317,38 +332,22 @@ class VerifyLandingPage {
             case "cf-1":
                 this.resetRecaptchaLoadingState();
                 this.useTurnstileView();
-                if (!this.turnstileReady || !window.turnstile) {
-                    this.setMessage("安全组件加载中，请稍候...", "info");
-                    return;
-                }
-                this.setMessage("", "warn");
-                if (!this.turnstileWidgetId) {
-                    this.turnstileWidgetId = window.turnstile.render("#turnstile-container", {
-                        sitekey: this.cfSiteKey,
-                        callback: (token) => this.onTurnstileSuccess(token),
-                    });
-                }
-                else {
-                    window.turnstile.reset(this.turnstileWidgetId);
-                }
+                this.mountOrResetTurnstile();
                 break;
             case "cf-2":
                 this.resetRecaptchaLoadingState();
                 this.useTurnstileView();
-                if (!this.turnstileReady || !window.turnstile || !this.turnstileWidgetId) {
-                    this.setMessage("安全组件准备中，请稍候...", "info");
-                    return;
-                }
-                this.setMessage("", "warn");
-                window.turnstile.reset(this.turnstileWidgetId);
+                this.mountOrResetTurnstile();
                 break;
             case "google-1":
+                this.resetTurnstileLoadingState();
                 this.useRecaptchaView();
                 this.preloadVideo();
                 this.mountOrResetRecaptcha();
                 break;
             case "google-2":
             case "google-3":
+                this.resetTurnstileLoadingState();
                 this.useRecaptchaView();
                 this.mountOrResetRecaptcha();
                 break;
@@ -363,6 +362,207 @@ class VerifyLandingPage {
     useRecaptchaView() {
         this.turnstileContainer.classList.add("hidden");
         this.recaptchaContainer.classList.remove("hidden");
+    }
+    mountOrResetTurnstile() {
+        if (!this.turnstileReady || !window.turnstile) {
+            this.waitForTurnstile();
+            return;
+        }
+        this.setMessage("", "warn");
+        try {
+            if (!this.turnstileWidgetId) {
+                this.turnstileWidgetId = window.turnstile.render("#turnstile-container", {
+                    sitekey: this.cfSiteKey,
+                    callback: (token) => this.onTurnstileSuccess(token),
+                });
+            }
+            else {
+                window.turnstile.reset(this.turnstileWidgetId);
+            }
+        }
+        catch {
+            this.handleTurnstileInitFailure();
+            return;
+        }
+        this.resetTurnstileLoadingState();
+    }
+    ensureTurnstileScript() {
+        if (window.turnstile) {
+            return Promise.resolve();
+        }
+        if (this.turnstileScriptPromise) {
+            return this.turnstileScriptPromise;
+        }
+        this.turnstileScriptPromise = new Promise((resolve, reject) => {
+            const existingScript = document.getElementById(TURNSTILE_SCRIPT_ID);
+            if (existingScript instanceof HTMLScriptElement) {
+                if (window.turnstile || existingScript.dataset.loaded === "true" || window.__turnstileReadyEventFired) {
+                    resolve();
+                    return;
+                }
+                existingScript.addEventListener("load", () => {
+                    existingScript.dataset.loaded = "true";
+                    resolve();
+                }, { once: true });
+                existingScript.addEventListener("error", () => reject(new Error("Turnstile 脚本加载失败")), { once: true });
+                return;
+            }
+            const script = document.createElement("script");
+            script.id = TURNSTILE_SCRIPT_ID;
+            script.src = TURNSTILE_SCRIPT_SRC;
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                script.dataset.loaded = "true";
+                resolve();
+            };
+            script.onerror = () => reject(new Error("Turnstile 脚本加载失败"));
+            document.head.appendChild(script);
+        }).catch((error) => {
+            this.turnstileScriptPromise = null;
+            throw error;
+        });
+        return this.turnstileScriptPromise;
+    }
+    reloadTurnstileScript() {
+        this.turnstileReady = false;
+        window.__turnstileReadyEventFired = false;
+        this.turnstileScriptPromise = null;
+        const existingScript = document.getElementById(TURNSTILE_SCRIPT_ID);
+        if (existingScript instanceof HTMLScriptElement) {
+            existingScript.remove();
+        }
+        return this.ensureTurnstileScript();
+    }
+    waitForTurnstile() {
+        if (this.turnstileWaitTimer !== undefined) {
+            return;
+        }
+        this.clearTurnstileInitRetryTimer();
+        this.turnstileInitRetryCount = 0;
+        this.turnstileRetryCount = 0;
+        this.startTurnstileLoadAttempt(false);
+        this.turnstileWaitTimer = window.setInterval(() => {
+            if (window.turnstile) {
+                this.turnstileReady = true;
+                this.resetTurnstileLoadingState();
+                this.renderStage();
+            }
+        }, TURNSTILE_POLL_INTERVAL_MS);
+    }
+    startTurnstileLoadAttempt(forceReload) {
+        if (window.turnstile || !this.isTurnstileStage()) {
+            return;
+        }
+        const currentAttempt = this.turnstileRetryCount + 1;
+        this.setMessage(`Turnstile 安全组件加载中（第 ${currentAttempt}/${TURNSTILE_TOTAL_LOAD_ATTEMPTS} 次尝试），请稍候...`, "info");
+        const attemptToken = ++this.turnstileAttemptToken;
+        this.startTurnstileFallbackTimeout(attemptToken);
+        const loadPromise = forceReload ? this.reloadTurnstileScript() : this.ensureTurnstileScript();
+        void loadPromise.catch(() => {
+            this.handleTurnstileLoadAttemptFailure(attemptToken, "Turnstile 安全组件受网络限制");
+        });
+    }
+    handleTurnstileLoadAttemptFailure(attemptToken, reason) {
+        if (attemptToken !== this.turnstileAttemptToken || window.turnstile || !this.isTurnstileStage()) {
+            return;
+        }
+        this.turnstileAttemptToken += 1;
+        this.clearTurnstileFallbackTimeout();
+        if (this.turnstileRetryCount >= TURNSTILE_MAX_RELOAD_RETRIES) {
+            this.handleTurnstileUnavailable(`${reason}，已重试 ${TURNSTILE_MAX_RELOAD_RETRIES} 次后自动跳过该步骤。`);
+            return;
+        }
+        this.turnstileRetryCount += 1;
+        const nextAttempt = this.turnstileRetryCount + 1;
+        this.setMessage(`Turnstile 加载异常，正在准备第 ${nextAttempt}/${TURNSTILE_TOTAL_LOAD_ATTEMPTS} 次尝试...`, "info");
+        this.clearTurnstileRetryTimer();
+        this.turnstileRetryTimer = window.setTimeout(() => {
+            this.turnstileRetryTimer = undefined;
+            this.startTurnstileLoadAttempt(true);
+        }, TURNSTILE_RETRY_DELAY_MS);
+    }
+    handleTurnstileInitFailure() {
+        if (!this.isTurnstileStage()) {
+            return;
+        }
+        if (this.turnstileInitRetryCount >= TURNSTILE_MAX_INIT_RETRIES) {
+            this.handleTurnstileUnavailable(`Turnstile 组件初始化失败，已重试 ${TURNSTILE_MAX_INIT_RETRIES} 次后自动跳过该步骤。`);
+            return;
+        }
+        this.turnstileInitRetryCount += 1;
+        const nextAttempt = this.turnstileInitRetryCount + 1;
+        this.setMessage(`Turnstile 组件初始化异常，正在准备第 ${nextAttempt}/${TURNSTILE_TOTAL_INIT_ATTEMPTS} 次尝试...`, "info");
+        this.clearTurnstileInitRetryTimer();
+        this.turnstileInitRetryTimer = window.setTimeout(() => {
+            this.turnstileInitRetryTimer = undefined;
+            if (!this.isTurnstileStage()) {
+                return;
+            }
+            this.mountOrResetTurnstile();
+        }, TURNSTILE_RETRY_DELAY_MS);
+    }
+    clearTurnstileWaitTimer() {
+        if (this.turnstileWaitTimer === undefined) {
+            return;
+        }
+        window.clearInterval(this.turnstileWaitTimer);
+        this.turnstileWaitTimer = undefined;
+    }
+    startTurnstileFallbackTimeout(attemptToken) {
+        this.clearTurnstileFallbackTimeout();
+        this.turnstileFallbackTimeout = window.setTimeout(() => {
+            this.turnstileFallbackTimeout = undefined;
+            this.handleTurnstileLoadAttemptFailure(attemptToken, "Turnstile 加载超时（5 秒）");
+        }, TURNSTILE_MAX_WAIT_MS);
+    }
+    clearTurnstileFallbackTimeout() {
+        if (this.turnstileFallbackTimeout === undefined) {
+            return;
+        }
+        window.clearTimeout(this.turnstileFallbackTimeout);
+        this.turnstileFallbackTimeout = undefined;
+    }
+    clearTurnstileRetryTimer() {
+        if (this.turnstileRetryTimer === undefined) {
+            return;
+        }
+        window.clearTimeout(this.turnstileRetryTimer);
+        this.turnstileRetryTimer = undefined;
+    }
+    clearTurnstileInitRetryTimer() {
+        if (this.turnstileInitRetryTimer === undefined) {
+            return;
+        }
+        window.clearTimeout(this.turnstileInitRetryTimer);
+        this.turnstileInitRetryTimer = undefined;
+    }
+    resetTurnstileLoadingState() {
+        this.clearTurnstileWaitTimer();
+        this.clearTurnstileFallbackTimeout();
+        this.clearTurnstileRetryTimer();
+        this.clearTurnstileInitRetryTimer();
+        this.turnstileRetryCount = 0;
+        this.turnstileInitRetryCount = 0;
+        this.turnstileAttemptToken += 1;
+    }
+    isTurnstileStage() {
+        return this.stage === "cf-1" || this.stage === "cf-2";
+    }
+    handleTurnstileUnavailable(message) {
+        this.turnstileReady = false;
+        this.resetTurnstileLoadingState();
+        if (!this.isTurnstileStage()) {
+            return;
+        }
+        this.setMessage(message, "warn");
+        window.setTimeout(() => {
+            if (!this.isTurnstileStage()) {
+                return;
+            }
+            this.stage = "google-1";
+            this.renderStage();
+        }, 900);
     }
     mountOrResetRecaptcha() {
         if (!window.grecaptcha) {
