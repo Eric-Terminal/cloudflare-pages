@@ -666,17 +666,21 @@ class VerifyLandingPage {
               <li>下次看到“验证进度 98%”，记得先怀疑一下页面动机。</li>
             </ul>
           </div>
-          <div class="final-video-controls">
-            <p class="rick-option-copy">Never Gonna Give You Up 已自动播放（静音）。</p>
-            <button id="unmute-rick-button" class="play-rick-button" type="button">
-              开启声音
-            </button>
-            <p class="final-hint" id="final-hint">若浏览器拦截自动播放，请点击视频控件继续。</p>
-          </div>
           <div class="final-video" id="final-video" aria-hidden="true">
             <video id="rick-video" controls loop playsinline preload="auto" autoplay muted>
               <source src="./rick.mp4" type="video/mp4" />
             </video>
+            <button
+              id="audio-toggle-button"
+              class="audio-toggle-button"
+              type="button"
+              aria-label="开启声音"
+              title="开启声音"
+            >
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M3 10v4h4l5 4V6L7 10H3Zm13.5 2a3.5 3.5 0 0 0-2.2-3.26v6.52A3.5 3.5 0 0 0 16.5 12Z"></path>
+              </svg>
+            </button>
           </div>
         </div>
       `;
@@ -687,12 +691,11 @@ class VerifyLandingPage {
 
   private bindFinalVideoAutoPlay(): void {
     const finalShell = this.card.querySelector<HTMLElement>("#final-shell");
-    const unmuteButton = this.card.querySelector<HTMLButtonElement>("#unmute-rick-button");
+    const audioToggleButton = this.card.querySelector<HTMLButtonElement>("#audio-toggle-button");
     const finalVideoWrap = this.card.querySelector<HTMLElement>("#final-video");
     const finalVideo = this.card.querySelector<HTMLVideoElement>("#rick-video");
-    const finalHint = this.card.querySelector<HTMLElement>("#final-hint");
 
-    if (!finalShell || !unmuteButton || !finalVideoWrap || !finalVideo) {
+    if (!finalShell || !audioToggleButton || !finalVideoWrap || !finalVideo) {
       return;
     }
 
@@ -705,31 +708,29 @@ class VerifyLandingPage {
     const startMutedPlayback = (): void => {
       const playPromise = finalVideo.play();
       if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(() => {
-          if (finalHint) {
-            finalHint.textContent = "浏览器阻止自动播放，请点击视频控件开始播放。";
-          }
-        });
+        playPromise.catch(() => {});
       }
     };
 
     startMutedPlayback();
     finalVideo.addEventListener("loadeddata", startMutedPlayback, { once: true });
 
-    unmuteButton.addEventListener("click", () => {
+    audioToggleButton.addEventListener("click", () => {
       finalVideo.muted = false;
+      finalVideo.defaultMuted = false;
       const playPromise = finalVideo.play();
       if (playPromise && typeof playPromise.catch === "function") {
         playPromise.catch(() => {
-          if (finalHint) {
-            finalHint.textContent = "无法自动开启声音，请使用视频控件解除静音。";
-          }
+          finalVideo.muted = true;
+          finalVideo.defaultMuted = true;
+          audioToggleButton.classList.remove("is-unmuted");
+          audioToggleButton.setAttribute("aria-label", "开启声音");
+          audioToggleButton.setAttribute("title", "开启声音");
         });
       }
-      unmuteButton.disabled = true;
-      if (finalHint) {
-        finalHint.textContent = "已尝试开启声音，可在视频控件中继续调整。";
-      }
+      audioToggleButton.classList.add("is-unmuted");
+      audioToggleButton.setAttribute("aria-label", "声音已开启");
+      audioToggleButton.setAttribute("title", "声音已开启");
     });
   }
 }

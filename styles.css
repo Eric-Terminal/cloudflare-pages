@@ -485,69 +485,9 @@ body.theme-night .theme-toggle:hover {
   line-height: 1.65;
 }
 
-.final-video-controls {
-  margin-top: 22px;
-  padding: 18px 18px 16px;
-  border: 1px solid rgba(163, 190, 255, 0.26);
-  border-radius: 16px;
-  background: rgba(20, 36, 68, 0.56);
-  text-align: center;
-  display: grid;
-  gap: 12px;
-  justify-items: center;
-  transition:
-    opacity 0.35s ease,
-    transform 0.35s ease,
-    max-height 0.35s ease,
-    margin-top 0.35s ease;
-}
-
-.rick-option-copy {
-  margin: 0;
-  color: #d9e8ff;
-  font-size: 0.97rem;
-  line-height: 1.5;
-}
-
-.play-rick-button {
-  border: 1px solid rgba(158, 192, 255, 0.56);
-  border-radius: 12px;
-  padding: 10px 18px;
-  color: #edf5ff;
-  background: linear-gradient(135deg, rgba(72, 122, 233, 0.95), rgba(107, 87, 216, 0.95));
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    filter 0.22s ease;
-}
-
-.play-rick-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(13, 30, 66, 0.42);
-}
-
-.play-rick-button:active {
-  transform: translateY(0);
-}
-
-.play-rick-button:disabled {
-  opacity: 0.72;
-  cursor: default;
-}
-
-.final-hint {
-  margin: 0;
-  color: #a8bfdc;
-  font-size: 0.86rem;
-}
-
 .final-video {
   margin-top: 0;
+  position: relative;
   border-radius: 20px;
   max-height: 0;
   opacity: 0;
@@ -578,18 +518,54 @@ body.theme-night .theme-toggle:hover {
   object-fit: cover;
 }
 
-body.theme-night .final-video-controls {
-  border-color: rgba(136, 171, 244, 0.31);
-  background: rgba(16, 30, 57, 0.64);
+.audio-toggle-button {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(184, 209, 255, 0.55);
+  background: rgba(9, 18, 38, 0.58);
+  color: #f0f6ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
-body.theme-night .play-rick-button {
-  background: linear-gradient(135deg, rgba(89, 130, 232, 0.96), rgba(118, 99, 224, 0.96));
-  box-shadow: 0 8px 20px rgba(5, 14, 32, 0.5);
+.audio-toggle-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
-body.theme-night .play-rick-button:hover {
-  box-shadow: 0 14px 30px rgba(4, 10, 26, 0.56);
+.audio-toggle-button:hover {
+  transform: translateY(-1px);
+  background: rgba(20, 36, 68, 0.82);
+  box-shadow: 0 10px 20px rgba(4, 10, 26, 0.45);
+}
+
+.audio-toggle-button:active {
+  transform: translateY(0);
+}
+
+.audio-toggle-button.is-unmuted {
+  background: rgba(50, 140, 255, 0.84);
+  border-color: rgba(155, 212, 255, 0.85);
+  color: #ffffff;
+}
+
+body.theme-night .audio-toggle-button {
+  background: rgba(10, 22, 48, 0.62);
+  border-color: rgba(168, 194, 248, 0.5);
 }
 
 @keyframes cardIn {
@@ -697,9 +673,6 @@ body.theme-night .play-rick-button:hover {
     height: 32px;
   }
 
-  .play-rick-button {
-    width: 100%;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
