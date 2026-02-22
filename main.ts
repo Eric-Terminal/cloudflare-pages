@@ -81,6 +81,7 @@ class VerifyLandingPage {
   private turnstileWidgetId: string | undefined;
   private recaptchaWidgetId: number | undefined;
   private recaptchaWaitTimer: number | undefined;
+  private recaptchaFallbackTimeout: number | undefined;
   private recaptchaScriptPromise: Promise<void> | null = null;
   private preloadedVideo: HTMLVideoElement | null = null;
   private themeMode: ThemeMode = "light";
@@ -382,6 +383,8 @@ class VerifyLandingPage {
 
   private renderStage(): void {
     if (this.stage === "final-mockery") {
+      this.clearRecaptchaWaitTimer();
+      this.clearRecaptchaFallbackTimeout();
       this.showFinalStage();
       return;
     }
@@ -399,6 +402,8 @@ class VerifyLandingPage {
 
     switch (this.stage) {
       case "cf-1":
+        this.clearRecaptchaWaitTimer();
+        this.clearRecaptchaFallbackTimeout();
         this.useTurnstileView();
         if (!this.turnstileReady || !window.turnstile) {
           this.setMessage("安全组件加载中，请稍候...", "info");
@@ -416,6 +421,8 @@ class VerifyLandingPage {
         break;
 
       case "cf-2":
+        this.clearRecaptchaWaitTimer();
+        this.clearRecaptchaFallbackTimeout();
         this.useTurnstileView();
         if (!this.turnstileReady || !window.turnstile || !this.turnstileWidgetId) {
           this.setMessage("安全组件准备中，请稍候...", "info");
@@ -453,6 +460,8 @@ class VerifyLandingPage {
   }
 
   private mountOrResetRecaptcha(): void {
+    this.startRecaptchaFallbackTimeout();
+
     if (!window.grecaptcha) {
       this.waitForRecaptcha();
       return;
@@ -460,15 +469,22 @@ class VerifyLandingPage {
 
     this.setMessage("", "warn");
 
-    if (this.recaptchaWidgetId === undefined) {
-      this.recaptchaWidgetId = window.grecaptcha.render("recaptcha-container", {
-        sitekey: this.googleSiteKey,
-        callback: (token: string) => this.onRecaptchaSuccess(token),
-      });
+    try {
+      if (this.recaptchaWidgetId === undefined) {
+        this.recaptchaWidgetId = window.grecaptcha.render("recaptcha-container", {
+          sitekey: this.googleSiteKey,
+          callback: (token: string) => this.onRecaptchaSuccess(token),
+        });
+      } else {
+        window.grecaptcha.reset(this.recaptchaWidgetId);
+      }
+    } catch {
+      this.handleRecaptchaUnavailable("Google 验证组件初始化失败，已自动跳过该步骤。");
       return;
     }
 
-    window.grecaptcha.reset(this.recaptchaWidgetId);
+    this.clearRecaptchaWaitTimer();
+    this.clearRecaptchaFallbackTimeout();
   }
 
   private ensureRecaptchaScript(): Promise<void> {
@@ -512,32 +528,27 @@ class VerifyLandingPage {
   }
 
   private waitForRecaptcha(): void {
-    if (this.recaptchaWaitTimer) {
+    if (this.recaptchaWaitTimer !== undefined) {
       return;
     }
 
+    this.startRecaptchaFallbackTimeout();
     this.setMessage("Google 验证组件加载中，请稍候...", "info");
     void this.ensureRecaptchaScript().catch(() => {
       this.handleRecaptchaUnavailable("Google 验证组件受网络限制，已自动跳过该步骤。");
     });
 
-    let elapsedMs = 0;
     this.recaptchaWaitTimer = window.setInterval(() => {
       if (window.grecaptcha) {
         this.clearRecaptchaWaitTimer();
+        this.clearRecaptchaFallbackTimeout();
         this.renderStage();
-        return;
-      }
-
-      elapsedMs += RECAPTCHA_POLL_INTERVAL_MS;
-      if (elapsedMs >= RECAPTCHA_MAX_WAIT_MS) {
-        this.handleRecaptchaUnavailable("Google 验证加载超时（5 秒），已自动跳过该步骤。");
       }
     }, RECAPTCHA_POLL_INTERVAL_MS);
   }
 
   private clearRecaptchaWaitTimer(): void {
-    if (!this.recaptchaWaitTimer) {
+    if (this.recaptchaWaitTimer === undefined) {
       return;
     }
 
@@ -545,8 +556,29 @@ class VerifyLandingPage {
     this.recaptchaWaitTimer = undefined;
   }
 
+  private startRecaptchaFallbackTimeout(): void {
+    if (this.recaptchaFallbackTimeout !== undefined) {
+      return;
+    }
+
+    this.recaptchaFallbackTimeout = window.setTimeout(() => {
+      this.recaptchaFallbackTimeout = undefined;
+      this.handleRecaptchaUnavailable("Google 验证加载超时（5 秒），已自动跳过该步骤。");
+    }, RECAPTCHA_MAX_WAIT_MS);
+  }
+
+  private clearRecaptchaFallbackTimeout(): void {
+    if (this.recaptchaFallbackTimeout === undefined) {
+      return;
+    }
+
+    window.clearTimeout(this.recaptchaFallbackTimeout);
+    this.recaptchaFallbackTimeout = undefined;
+  }
+
   private handleRecaptchaUnavailable(message: string): void {
     this.clearRecaptchaWaitTimer();
+    this.clearRecaptchaFallbackTimeout();
 
     if (this.stage !== "google-1" && this.stage !== "google-2" && this.stage !== "google-3") {
       return;
