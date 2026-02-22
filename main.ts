@@ -34,7 +34,7 @@ const STAGE_COPY: Record<Exclude<Stage, "final-mockery">, {
 }> = {
   "cf-1": {
     chip: "安全网关",
-    title: "访问安全确认",
+    title: "Eric-Terminal的个人主页",
     subtitle: "检测到当前会话存在风险特征，请先完成一次行为验证。",
     helper: "通常仅需一次验证，完成后系统将自动处理后续流程。",
   },
