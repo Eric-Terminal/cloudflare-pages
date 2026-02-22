@@ -6,6 +6,8 @@ type MotionProfile = "standard" | "balanced";
 const THEME_STORAGE_KEY = "eric-terminal-home-theme";
 const RECAPTCHA_SCRIPT_ID = "recaptcha-api-script";
 const RECAPTCHA_SCRIPT_SRC = "https://www.recaptcha.net/recaptcha/api.js?render=explicit";
+const RECAPTCHA_POLL_INTERVAL_MS = 250;
+const RECAPTCHA_MAX_WAIT_MS = 5000;
 
 interface TurnstileAPI {
   render: (
@@ -516,29 +518,48 @@ class VerifyLandingPage {
 
     this.setMessage("Google 验证组件加载中，请稍候...", "info");
     void this.ensureRecaptchaScript().catch(() => {
-      if (this.recaptchaWaitTimer) {
-        window.clearInterval(this.recaptchaWaitTimer);
-        this.recaptchaWaitTimer = undefined;
-      }
-      this.setMessage("Google 验证组件加载失败，请检查网络后重试。", "warn");
+      this.handleRecaptchaUnavailable("Google 验证组件受网络限制，已自动跳过该步骤。");
     });
 
-    let remaining = 40;
+    let elapsedMs = 0;
     this.recaptchaWaitTimer = window.setInterval(() => {
       if (window.grecaptcha) {
-        window.clearInterval(this.recaptchaWaitTimer);
-        this.recaptchaWaitTimer = undefined;
+        this.clearRecaptchaWaitTimer();
         this.renderStage();
         return;
       }
 
-      remaining -= 1;
-      if (remaining <= 0) {
-        window.clearInterval(this.recaptchaWaitTimer);
-        this.recaptchaWaitTimer = undefined;
-        this.setMessage("Google 验证组件加载失败，请刷新后重试。", "warn");
+      elapsedMs += RECAPTCHA_POLL_INTERVAL_MS;
+      if (elapsedMs >= RECAPTCHA_MAX_WAIT_MS) {
+        this.handleRecaptchaUnavailable("Google 验证加载超时（5 秒），已自动跳过该步骤。");
       }
-    }, 250);
+    }, RECAPTCHA_POLL_INTERVAL_MS);
+  }
+
+  private clearRecaptchaWaitTimer(): void {
+    if (!this.recaptchaWaitTimer) {
+      return;
+    }
+
+    window.clearInterval(this.recaptchaWaitTimer);
+    this.recaptchaWaitTimer = undefined;
+  }
+
+  private handleRecaptchaUnavailable(message: string): void {
+    this.clearRecaptchaWaitTimer();
+
+    if (this.stage !== "google-1" && this.stage !== "google-2" && this.stage !== "google-3") {
+      return;
+    }
+
+    this.setMessage(message, "warn");
+    window.setTimeout(() => {
+      if (this.stage !== "google-1" && this.stage !== "google-2" && this.stage !== "google-3") {
+        return;
+      }
+      this.stage = "final-mockery";
+      this.renderStage();
+    }, 900);
   }
 
   private onTurnstileSuccess(_token: string): void {
