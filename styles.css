@@ -63,12 +63,37 @@ body.theme-night {
 }
 
 body.final-stage {
+  --text-main: #1f304d;
+  --text-sub: #617896;
+  --card-bg: rgba(255, 255, 255, 0.74);
+  --card-border: rgba(150, 184, 239, 0.42);
+  --chip-bg: rgba(255, 118, 118, 0.16);
+  --chip-text: #ce5e67;
+  --final-alert: #d8626c;
+  --final-list-color: #526d8f;
+  --audio-toggle-bg: rgba(248, 252, 255, 0.8);
+  --audio-toggle-border: rgba(112, 151, 223, 0.5);
+  --audio-toggle-color: #315292;
+  --audio-toggle-hover-bg: rgba(236, 246, 255, 0.96);
+  background:
+    radial-gradient(1000px 620px at 8% 10%, rgba(142, 186, 255, 0.5), transparent 66%),
+    radial-gradient(900px 620px at 90% 14%, rgba(255, 161, 205, 0.42), transparent 65%),
+    linear-gradient(138deg, #eaf4ff 0%, #f4f8ff 52%, #fff4fc 100%);
+}
+
+body.final-stage.theme-night {
   --text-main: #ebf2ff;
   --text-sub: #adc0de;
   --card-bg: rgba(12, 22, 43, 0.72);
   --card-border: rgba(162, 202, 255, 0.2);
   --chip-bg: rgba(255, 118, 118, 0.2);
   --chip-text: #ffb5b5;
+  --final-alert: #ff9fa3;
+  --final-list-color: #cedcf8;
+  --audio-toggle-bg: rgba(9, 18, 38, 0.58);
+  --audio-toggle-border: rgba(184, 209, 255, 0.55);
+  --audio-toggle-color: #f0f6ff;
+  --audio-toggle-hover-bg: rgba(20, 36, 68, 0.82);
   background:
     radial-gradient(900px 560px at 5% 10%, rgba(49, 87, 173, 0.45), transparent 65%),
     radial-gradient(800px 650px at 88% 14%, rgba(184, 62, 118, 0.36), transparent 64%),
@@ -462,13 +487,27 @@ body.theme-night .theme-toggle:hover {
 }
 
 .final-shell {
+  position: relative;
+  padding-top: 4px;
   animation: finalStageEnterFromBottom 0.58s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.final-toolbar {
+  position: absolute;
+  right: 4px;
+  top: 0;
+  z-index: 3;
+}
+
+.final-toolbar .theme-toggle {
+  width: 32px;
+  height: 32px;
 }
 
 .final-mockery strong {
   display: block;
   margin: 18px 0 14px;
-  color: #ff9fa3;
+  color: var(--final-alert, #ff9fa3);
   font-size: clamp(1.9rem, 4vw, 2.4rem);
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -480,7 +519,7 @@ body.theme-night .theme-toggle:hover {
   list-style: none;
   display: grid;
   gap: 8px;
-  color: #cedcf8;
+  color: var(--final-list-color, #cedcf8);
   font-size: 1rem;
   line-height: 1.65;
 }
@@ -525,9 +564,9 @@ body.theme-night .theme-toggle:hover {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  border: 1px solid rgba(184, 209, 255, 0.55);
-  background: rgba(9, 18, 38, 0.58);
-  color: #f0f6ff;
+  border: 1px solid var(--audio-toggle-border, rgba(184, 209, 255, 0.55));
+  background: var(--audio-toggle-bg, rgba(9, 18, 38, 0.58));
+  color: var(--audio-toggle-color, #f0f6ff);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -549,7 +588,7 @@ body.theme-night .theme-toggle:hover {
 
 .audio-toggle-button:hover {
   transform: translateY(-1px);
-  background: rgba(20, 36, 68, 0.82);
+  background: var(--audio-toggle-hover-bg, rgba(20, 36, 68, 0.82));
   box-shadow: 0 10px 20px rgba(4, 10, 26, 0.45);
 }
 
@@ -561,11 +600,6 @@ body.theme-night .theme-toggle:hover {
   background: rgba(50, 140, 255, 0.84);
   border-color: rgba(155, 212, 255, 0.85);
   color: #ffffff;
-}
-
-body.theme-night .audio-toggle-button {
-  background: rgba(10, 22, 48, 0.62);
-  border-color: rgba(168, 194, 248, 0.5);
 }
 
 @keyframes cardIn {

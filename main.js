@@ -54,6 +54,7 @@ class VerifyLandingPage {
         this.lastTiltY = 0;
         this.lastSpotX = 50;
         this.lastSpotY = 35;
+        this.finalThemeToggleButton = null;
         this.handleTurnstileReady = () => {
             this.turnstileReady = true;
             this.renderStage();
@@ -135,10 +136,8 @@ class VerifyLandingPage {
         const isNight = theme === "night";
         const nextThemeLabel = isNight ? "切换为日间主题" : "切换为夜间主题";
         this.body.classList.toggle("theme-night", theme === "night");
-        this.themeToggleButton.classList.toggle("is-night", isNight);
-        this.themeToggleButton.setAttribute("aria-pressed", isNight ? "true" : "false");
-        this.themeToggleButton.setAttribute("aria-label", nextThemeLabel);
-        this.themeToggleButton.setAttribute("title", nextThemeLabel);
+        this.applyThemeToggleButtonState(this.themeToggleButton, isNight, nextThemeLabel);
+        this.applyThemeToggleButtonState(this.finalThemeToggleButton, isNight, nextThemeLabel);
         if (!persist) {
             return;
         }
@@ -148,6 +147,15 @@ class VerifyLandingPage {
         catch {
             return;
         }
+    }
+    applyThemeToggleButtonState(button, isNight, nextThemeLabel) {
+        if (!button) {
+            return;
+        }
+        button.classList.toggle("is-night", isNight);
+        button.setAttribute("aria-pressed", isNight ? "true" : "false");
+        button.setAttribute("aria-label", nextThemeLabel);
+        button.setAttribute("title", nextThemeLabel);
     }
     bootstrapUIEffects() {
         this.createParticles();
@@ -512,15 +520,42 @@ class VerifyLandingPage {
             return;
         }
         this.body.classList.add("final-stage");
+        this.finalThemeToggleButton = null;
         this.card.classList.remove("is-tilting", "is-updating");
         this.card.classList.add("is-final-transitioning");
         const transitionOutDuration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420;
+        const isNightTheme = this.themeMode === "night";
+        const nextThemeLabel = isNightTheme ? "切换为日间主题" : "切换为夜间主题";
         window.setTimeout(() => {
             this.card.classList.remove("is-final-transitioning");
             this.card.classList.add("final-card");
             this.card.innerHTML = `
         <div class="spotlight" id="spotlight"></div>
         <div class="final-shell is-playing" id="final-shell">
+          <div class="final-toolbar">
+            <button
+              id="final-theme-toggle"
+              class="theme-toggle${isNightTheme ? " is-night" : ""}"
+              type="button"
+              aria-pressed="${isNightTheme ? "true" : "false"}"
+              aria-label="${nextThemeLabel}"
+              title="${nextThemeLabel}"
+            >
+              <span class="theme-icon icon-sun" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4.4"></circle>
+                  <path
+                    d="M12 2.2v2.2M12 19.6v2.2M21.8 12h-2.2M4.4 12H2.2M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6M18.9 18.9l-1.6-1.6M6.7 6.7 5.1 5.1"
+                  ></path>
+                </svg>
+              </span>
+              <span class="theme-icon icon-moon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                  <path d="M15.4 3.5a8.9 8.9 0 1 0 5.1 15.8A9.2 9.2 0 0 1 15.4 3.5Z"></path>
+                </svg>
+              </span>
+            </button>
+          </div>
           <div class="final-mockery">
             <span class="stage-chip">Access Denied</span>
             <strong>你被耍了</strong>
@@ -554,16 +589,20 @@ class VerifyLandingPage {
     bindFinalVideoAutoPlay() {
         const finalShell = this.card.querySelector("#final-shell");
         const audioToggleButton = this.card.querySelector("#audio-toggle-button");
+        const finalThemeToggleButton = this.card.querySelector("#final-theme-toggle");
         const finalVideoWrap = this.card.querySelector("#final-video");
         const finalVideo = this.card.querySelector("#rick-video");
-        if (!finalShell || !audioToggleButton || !finalVideoWrap || !finalVideo) {
+        if (!finalShell || !audioToggleButton || !finalVideoWrap || !finalVideo || !finalThemeToggleButton) {
             return;
         }
+        this.finalThemeToggleButton = finalThemeToggleButton;
+        this.finalThemeToggleButton.addEventListener("click", this.handleThemeToggle);
         finalShell.classList.add("is-playing");
         finalVideoWrap.setAttribute("aria-hidden", "false");
         finalVideo.defaultMuted = true;
         finalVideo.muted = true;
         finalVideo.currentTime = 0;
+        this.applyAudioToggleButtonState(audioToggleButton, true);
         const startMutedPlayback = () => {
             const playPromise = finalVideo.play();
             if (playPromise && typeof playPromise.catch === "function") {
@@ -573,22 +612,36 @@ class VerifyLandingPage {
         startMutedPlayback();
         finalVideo.addEventListener("loadeddata", startMutedPlayback, { once: true });
         audioToggleButton.addEventListener("click", () => {
-            finalVideo.muted = false;
-            finalVideo.defaultMuted = false;
-            const playPromise = finalVideo.play();
-            if (playPromise && typeof playPromise.catch === "function") {
-                playPromise.catch(() => {
-                    finalVideo.muted = true;
-                    finalVideo.defaultMuted = true;
-                    audioToggleButton.classList.remove("is-unmuted");
-                    audioToggleButton.setAttribute("aria-label", "开启声音");
-                    audioToggleButton.setAttribute("title", "开启声音");
-                });
+            const shouldUnmute = finalVideo.muted;
+            if (shouldUnmute) {
+                finalVideo.muted = false;
+                finalVideo.defaultMuted = false;
+                const playPromise = finalVideo.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                    playPromise.catch(() => {
+                        finalVideo.muted = true;
+                        finalVideo.defaultMuted = true;
+                        this.applyAudioToggleButtonState(audioToggleButton, true);
+                    });
+                }
+                this.applyAudioToggleButtonState(audioToggleButton, false);
+                return;
             }
-            audioToggleButton.classList.add("is-unmuted");
-            audioToggleButton.setAttribute("aria-label", "声音已开启");
-            audioToggleButton.setAttribute("title", "声音已开启");
+            finalVideo.muted = true;
+            finalVideo.defaultMuted = true;
+            this.applyAudioToggleButtonState(audioToggleButton, true);
         });
+    }
+    applyAudioToggleButtonState(button, muted) {
+        if (muted) {
+            button.classList.remove("is-unmuted");
+            button.setAttribute("aria-label", "开启声音");
+            button.setAttribute("title", "开启声音");
+            return;
+        }
+        button.classList.add("is-unmuted");
+        button.setAttribute("aria-label", "关闭声音");
+        button.setAttribute("title", "关闭声音");
     }
 }
 const start = () => {
