@@ -1,8 +1,11 @@
 type Stage = "cf-1" | "cf-2" | "google-1" | "google-2" | "google-3" | "final-mockery";
 type MessageTone = "ok" | "warn" | "info";
 type ThemeMode = "light" | "night";
+type MotionProfile = "standard" | "balanced";
 
 const THEME_STORAGE_KEY = "eric-terminal-home-theme";
+const RECAPTCHA_SCRIPT_ID = "recaptcha-api-script";
+const RECAPTCHA_SCRIPT_SRC = "https://www.recaptcha.net/recaptcha/api.js?render=explicit";
 
 interface TurnstileAPI {
   render: (
@@ -76,8 +79,19 @@ class VerifyLandingPage {
   private turnstileWidgetId: string | undefined;
   private recaptchaWidgetId: number | undefined;
   private recaptchaWaitTimer: number | undefined;
+  private recaptchaScriptPromise: Promise<void> | null = null;
   private preloadedVideo: HTMLVideoElement | null = null;
   private themeMode: ThemeMode = "light";
+  private motionProfile: MotionProfile = "standard";
+  private tiltBounds: DOMRect | null = null;
+  private tiltRafId: number | null = null;
+  private pointerX = 0;
+  private pointerY = 0;
+  private hasPendingPointer = false;
+  private lastTiltX = 0;
+  private lastTiltY = 0;
+  private lastSpotX = 50;
+  private lastSpotY = 35;
 
   private readonly body: HTMLElement;
   private readonly card: HTMLElement;
@@ -105,6 +119,7 @@ class VerifyLandingPage {
     this.themeToggleButton = this.mustGetButtonById("theme-toggle");
 
     this.initializeTheme();
+    this.initializeMotionProfile();
     this.themeToggleButton.addEventListener("click", this.handleThemeToggle);
 
     this.bootstrapUIEffects();
@@ -161,6 +176,21 @@ class VerifyLandingPage {
     return null;
   }
 
+  private initializeMotionProfile(): void {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const lowConcurrency =
+      typeof navigator.hardwareConcurrency === "number" &&
+      navigator.hardwareConcurrency > 0 &&
+      navigator.hardwareConcurrency <= 6;
+    const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    const lowMemory = typeof deviceMemory === "number" && deviceMemory <= 8;
+    const shouldBalanceMotion = prefersReducedMotion || coarsePointer || lowConcurrency || lowMemory;
+
+    this.motionProfile = shouldBalanceMotion ? "balanced" : "standard";
+    this.body.classList.toggle("motion-balanced", shouldBalanceMotion);
+  }
+
   private readonly handleThemeToggle = (): void => {
     const nextTheme: ThemeMode = this.themeMode === "light" ? "night" : "light";
     this.applyTheme(nextTheme, true);
@@ -194,14 +224,22 @@ class VerifyLandingPage {
 
   private createParticles(): void {
     const tones = ["#8ab7ff", "#ffb5df", "#94ffdc", "#c3c8ff"];
-    const count = 22;
+    const isBalanced = this.motionProfile === "balanced";
+    const count = isBalanced ? 14 : 22;
+    const baseDuration = isBalanced ? 11 : 8;
+    const durationRange = isBalanced ? 9 : 8;
+    const riseMin = isBalanced ? 170 : 180;
+    const riseRange = isBalanced ? 55 : 90;
+    const driftRange = isBalanced ? 18 : 30;
 
     for (let index = 0; index < count; index += 1) {
       const particle = document.createElement("span");
-      const duration = (8 + Math.random() * 8).toFixed(2);
+      const duration = (baseDuration + Math.random() * durationRange).toFixed(2);
       const delay = (-Math.random() * 12).toFixed(2);
       const size = (2 + Math.random() * 4).toFixed(2);
       const tone = tones[Math.floor(Math.random() * tones.length)] || tones[0];
+      const driftX = ((Math.random() - 0.5) * driftRange).toFixed(2);
+      const riseDistance = `-${(riseMin + Math.random() * riseRange).toFixed(2)}px`;
 
       particle.className = "particle";
       particle.style.left = `${(Math.random() * 100).toFixed(2)}%`;
@@ -210,6 +248,8 @@ class VerifyLandingPage {
       particle.style.setProperty("--delay", `${delay}s`);
       particle.style.setProperty("--size", `${size}px`);
       particle.style.setProperty("--tone", tone);
+      particle.style.setProperty("--drift-x", `${driftX}px`);
+      particle.style.setProperty("--rise-distance", riseDistance);
 
       this.particleLayer.appendChild(particle);
     }
@@ -221,27 +261,97 @@ class VerifyLandingPage {
       return;
     }
 
-    this.card.addEventListener("mousemove", (event: MouseEvent) => {
-      const bounds = this.card.getBoundingClientRect();
-      const relativeX = (event.clientX - bounds.left) / bounds.width;
-      const relativeY = (event.clientY - bounds.top) / bounds.height;
-      const rotateY = (relativeX - 0.5) * 8;
-      const rotateX = (0.5 - relativeY) * 6;
+    const refreshBounds = (): void => {
+      this.tiltBounds = this.card.getBoundingClientRect();
+    };
 
-      this.card.classList.add("is-tilting");
-      this.card.style.setProperty("--tilt-x", `${rotateX.toFixed(2)}deg`);
-      this.card.style.setProperty("--tilt-y", `${rotateY.toFixed(2)}deg`);
-      this.card.style.setProperty("--spot-x", `${(relativeX * 100).toFixed(1)}%`);
-      this.card.style.setProperty("--spot-y", `${(relativeY * 100).toFixed(1)}%`);
+    const scheduleTiltUpdate = (): void => {
+      if (this.tiltRafId !== null) {
+        return;
+      }
+
+      this.tiltRafId = window.requestAnimationFrame(() => {
+        this.tiltRafId = null;
+        this.applyTiltFromPointer();
+      });
+    };
+
+    this.card.addEventListener("mouseenter", () => {
+      refreshBounds();
+    });
+
+    this.card.addEventListener("mousemove", (event: MouseEvent) => {
+      this.pointerX = event.clientX;
+      this.pointerY = event.clientY;
+      this.hasPendingPointer = true;
+      scheduleTiltUpdate();
     });
 
     this.card.addEventListener("mouseleave", () => {
-      this.card.classList.remove("is-tilting");
-      this.card.style.setProperty("--tilt-x", "0deg");
-      this.card.style.setProperty("--tilt-y", "0deg");
-      this.card.style.setProperty("--spot-x", "50%");
-      this.card.style.setProperty("--spot-y", "35%");
+      this.hasPendingPointer = false;
+      if (this.tiltRafId !== null) {
+        window.cancelAnimationFrame(this.tiltRafId);
+        this.tiltRafId = null;
+      }
+      this.resetTilt();
     });
+
+    window.addEventListener("resize", refreshBounds, { passive: true });
+  }
+
+  private applyTiltFromPointer(): void {
+    if (!this.hasPendingPointer) {
+      return;
+    }
+
+    if (!this.tiltBounds) {
+      this.tiltBounds = this.card.getBoundingClientRect();
+    }
+
+    const bounds = this.tiltBounds;
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+      return;
+    }
+
+    const relativeX = this.clamp((this.pointerX - bounds.left) / bounds.width, 0, 1);
+    const relativeY = this.clamp((this.pointerY - bounds.top) / bounds.height, 0, 1);
+    const rotateY = (relativeX - 0.5) * 8;
+    const rotateX = (0.5 - relativeY) * 6;
+    const spotX = relativeX * 100;
+    const spotY = relativeY * 100;
+
+    const tiltChanged = Math.abs(this.lastTiltX - rotateX) > 0.08 || Math.abs(this.lastTiltY - rotateY) > 0.08;
+    const spotChanged = Math.abs(this.lastSpotX - spotX) > 0.8 || Math.abs(this.lastSpotY - spotY) > 0.8;
+    if (!tiltChanged && !spotChanged) {
+      return;
+    }
+
+    this.lastTiltX = rotateX;
+    this.lastTiltY = rotateY;
+    this.lastSpotX = spotX;
+    this.lastSpotY = spotY;
+
+    this.card.classList.add("is-tilting");
+    this.card.style.setProperty("--tilt-x", `${rotateX.toFixed(2)}deg`);
+    this.card.style.setProperty("--tilt-y", `${rotateY.toFixed(2)}deg`);
+    this.card.style.setProperty("--spot-x", `${spotX.toFixed(1)}%`);
+    this.card.style.setProperty("--spot-y", `${spotY.toFixed(1)}%`);
+  }
+
+  private resetTilt(): void {
+    this.lastTiltX = 0;
+    this.lastTiltY = 0;
+    this.lastSpotX = 50;
+    this.lastSpotY = 35;
+    this.card.classList.remove("is-tilting");
+    this.card.style.setProperty("--tilt-x", "0deg");
+    this.card.style.setProperty("--tilt-y", "0deg");
+    this.card.style.setProperty("--spot-x", "50%");
+    this.card.style.setProperty("--spot-y", "35%");
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
   }
 
   private renderStage(): void {
@@ -335,12 +445,59 @@ class VerifyLandingPage {
     window.grecaptcha.reset(this.recaptchaWidgetId);
   }
 
+  private ensureRecaptchaScript(): Promise<void> {
+    if (window.grecaptcha) {
+      return Promise.resolve();
+    }
+
+    if (this.recaptchaScriptPromise) {
+      return this.recaptchaScriptPromise;
+    }
+
+    this.recaptchaScriptPromise = new Promise<void>((resolve, reject) => {
+      const existingScript = document.getElementById(RECAPTCHA_SCRIPT_ID);
+      if (existingScript instanceof HTMLScriptElement) {
+        if (window.grecaptcha || existingScript.dataset.loaded === "true") {
+          resolve();
+          return;
+        }
+        existingScript.addEventListener("load", () => resolve(), { once: true });
+        existingScript.addEventListener("error", () => reject(new Error("reCAPTCHA 脚本加载失败")), { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = RECAPTCHA_SCRIPT_ID;
+      script.src = RECAPTCHA_SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        script.dataset.loaded = "true";
+        resolve();
+      };
+      script.onerror = () => reject(new Error("reCAPTCHA 脚本加载失败"));
+      document.head.appendChild(script);
+    }).catch((error: unknown) => {
+      this.recaptchaScriptPromise = null;
+      throw error;
+    });
+
+    return this.recaptchaScriptPromise;
+  }
+
   private waitForRecaptcha(): void {
     if (this.recaptchaWaitTimer) {
       return;
     }
 
     this.setMessage("Google 验证组件加载中，请稍候...", "info");
+    void this.ensureRecaptchaScript().catch(() => {
+      if (this.recaptchaWaitTimer) {
+        window.clearInterval(this.recaptchaWaitTimer);
+        this.recaptchaWaitTimer = undefined;
+      }
+      this.setMessage("Google 验证组件加载失败，请检查网络后重试。", "warn");
+    });
 
     let remaining = 40;
     this.recaptchaWaitTimer = window.setInterval(() => {
