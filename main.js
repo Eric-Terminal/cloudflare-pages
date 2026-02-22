@@ -6,6 +6,8 @@ const RECAPTCHA_MAX_WAIT_MS = 5000;
 const RECAPTCHA_MAX_RELOAD_RETRIES = 3;
 const RECAPTCHA_RETRY_DELAY_MS = 700;
 const RECAPTCHA_TOTAL_LOAD_ATTEMPTS = RECAPTCHA_MAX_RELOAD_RETRIES + 1;
+const RECAPTCHA_MAX_INIT_RETRIES = 3;
+const RECAPTCHA_TOTAL_INIT_ATTEMPTS = RECAPTCHA_MAX_INIT_RETRIES + 1;
 const FINAL_VIDEO_WEBM_URL = "https://assets.ericterminal.com/Rickroll.webm";
 const FINAL_VIDEO_MP4_FALLBACK_URL = "./rick.mp4";
 const STAGE_COPY = {
@@ -48,6 +50,7 @@ class VerifyLandingPage {
         this.turnstileReady = false;
         this.recaptchaScriptPromise = null;
         this.recaptchaRetryCount = 0;
+        this.recaptchaInitRetryCount = 0;
         this.recaptchaAttemptToken = 0;
         this.preloadedVideo = null;
         this.themeMode = "light";
@@ -379,7 +382,7 @@ class VerifyLandingPage {
             }
         }
         catch {
-            this.handleRecaptchaUnavailable("Google 验证组件初始化失败，已自动跳过该步骤。");
+            this.handleRecaptchaInitFailure();
             return;
         }
         this.resetRecaptchaLoadingState();
@@ -431,6 +434,8 @@ class VerifyLandingPage {
         if (this.recaptchaWaitTimer !== undefined) {
             return;
         }
+        this.clearRecaptchaInitRetryTimer();
+        this.recaptchaInitRetryCount = 0;
         this.recaptchaRetryCount = 0;
         this.startRecaptchaLoadAttempt(false);
         this.recaptchaWaitTimer = window.setInterval(() => {
@@ -472,6 +477,26 @@ class VerifyLandingPage {
             this.startRecaptchaLoadAttempt(true);
         }, RECAPTCHA_RETRY_DELAY_MS);
     }
+    handleRecaptchaInitFailure() {
+        if (!this.isGoogleStage()) {
+            return;
+        }
+        if (this.recaptchaInitRetryCount >= RECAPTCHA_MAX_INIT_RETRIES) {
+            this.handleRecaptchaUnavailable(`Google 验证组件初始化失败，已重试 ${RECAPTCHA_MAX_INIT_RETRIES} 次后自动跳过该步骤。`);
+            return;
+        }
+        this.recaptchaInitRetryCount += 1;
+        const nextAttempt = this.recaptchaInitRetryCount + 1;
+        this.setMessage(`Google 验证组件初始化异常，正在准备第 ${nextAttempt}/${RECAPTCHA_TOTAL_INIT_ATTEMPTS} 次尝试...`, "info");
+        this.clearRecaptchaInitRetryTimer();
+        this.recaptchaInitRetryTimer = window.setTimeout(() => {
+            this.recaptchaInitRetryTimer = undefined;
+            if (!this.isGoogleStage()) {
+                return;
+            }
+            this.mountOrResetRecaptcha();
+        }, RECAPTCHA_RETRY_DELAY_MS);
+    }
     clearRecaptchaWaitTimer() {
         if (this.recaptchaWaitTimer === undefined) {
             return;
@@ -500,11 +525,20 @@ class VerifyLandingPage {
         window.clearTimeout(this.recaptchaRetryTimer);
         this.recaptchaRetryTimer = undefined;
     }
+    clearRecaptchaInitRetryTimer() {
+        if (this.recaptchaInitRetryTimer === undefined) {
+            return;
+        }
+        window.clearTimeout(this.recaptchaInitRetryTimer);
+        this.recaptchaInitRetryTimer = undefined;
+    }
     resetRecaptchaLoadingState() {
         this.clearRecaptchaWaitTimer();
         this.clearRecaptchaFallbackTimeout();
         this.clearRecaptchaRetryTimer();
+        this.clearRecaptchaInitRetryTimer();
         this.recaptchaRetryCount = 0;
+        this.recaptchaInitRetryCount = 0;
         this.recaptchaAttemptToken += 1;
     }
     isGoogleStage() {
