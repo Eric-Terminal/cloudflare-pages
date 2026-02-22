@@ -2,6 +2,51 @@ type Stage = "cf-1" | "cf-2" | "google-1" | "google-2" | "google-3" | "final-moc
 type MessageTone = "ok" | "warn" | "info";
 type ThemeMode = "light" | "night";
 type MotionProfile = "standard" | "balanced";
+type Language = "zh" | "en";
+
+interface StageCopy {
+  chip: string;
+  title: string;
+  subtitle: string;
+  helper: string;
+}
+
+interface LocaleCopy {
+  htmlLang: string;
+  pageTitle: string;
+  captchaAreaLabel: string;
+  themeToggleToLight: string;
+  themeToggleToNight: string;
+  audioOn: string;
+  audioOff: string;
+  loadSecurityMessage: string;
+  missingNodeError: (id: string) => string;
+  missingButtonError: (id: string) => string;
+  turnstileScriptLoadError: string;
+  recaptchaScriptLoadError: string;
+  turnstileLoading: (currentAttempt: number, totalAttempts: number) => string;
+  turnstileNetworkRestricted: string;
+  turnstileLoadRetryExceeded: (reason: string, maxRetries: number) => string;
+  turnstileLoadRetrying: (nextAttempt: number, totalAttempts: number) => string;
+  turnstileInitRetryExceeded: (maxRetries: number) => string;
+  turnstileInitRetrying: (nextAttempt: number, totalAttempts: number) => string;
+  turnstileLoadTimeout: string;
+  recaptchaLoading: (currentAttempt: number, totalAttempts: number) => string;
+  recaptchaNetworkRestricted: string;
+  recaptchaLoadRetryExceeded: (reason: string, maxRetries: number) => string;
+  recaptchaLoadRetrying: (nextAttempt: number, totalAttempts: number) => string;
+  recaptchaInitRetryExceeded: (maxRetries: number) => string;
+  recaptchaInitRetrying: (nextAttempt: number, totalAttempts: number) => string;
+  recaptchaLoadTimeout: string;
+  turnstileSuccessMessage: string;
+  turnstileEscalationMessage: string;
+  recaptchaSuccessMessage: string;
+  recaptchaNeedMoreMessage: string;
+  finalChip: string;
+  finalTitle: string;
+  finalLines: [string, string, string];
+  stageCopy: Record<Exclude<Stage, "final-mockery">, StageCopy>;
+}
 
 const THEME_STORAGE_KEY = "eric-terminal-home-theme";
 const TURNSTILE_SCRIPT_ID = "turnstile-api-script";
@@ -51,47 +96,174 @@ declare global {
   }
 }
 
-const STAGE_COPY: Record<Exclude<Stage, "final-mockery">, {
-  chip: string;
-  title: string;
-  subtitle: string;
-  helper: string;
-}> = {
-  "cf-1": {
-    chip: "安全网关",
-    title: "Eric-Terminal的个人主页",
-    subtitle: "检测到当前会话存在风险特征，请先完成一次行为验证。",
-    helper: "通常仅需一次验证，完成后系统将自动处理后续流程。",
+const LOCALE_COPY: Record<Language, LocaleCopy> = {
+  zh: {
+    htmlLang: "zh-CN",
+    pageTitle: "Eric-Terminal的个人主页",
+    captchaAreaLabel: "验证区域",
+    themeToggleToLight: "切换为日间主题",
+    themeToggleToNight: "切换为夜间主题",
+    audioOn: "开启声音",
+    audioOff: "关闭声音",
+    loadSecurityMessage: "安全组件加载中，请稍候...",
+    missingNodeError: (id: string) => `页面缺少关键节点：${id}`,
+    missingButtonError: (id: string) => `页面缺少按钮节点：${id}`,
+    turnstileScriptLoadError: "Turnstile 脚本加载失败",
+    recaptchaScriptLoadError: "reCAPTCHA 脚本加载失败",
+    turnstileLoading: (currentAttempt: number, totalAttempts: number) =>
+      `Turnstile 安全组件加载中（第 ${currentAttempt}/${totalAttempts} 次尝试），请稍候...`,
+    turnstileNetworkRestricted: "Turnstile 安全组件受网络限制",
+    turnstileLoadRetryExceeded: (reason: string, maxRetries: number) => `${reason}，已重试 ${maxRetries} 次后自动跳过该步骤。`,
+    turnstileLoadRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Turnstile 加载异常，正在准备第 ${nextAttempt}/${totalAttempts} 次尝试...`,
+    turnstileInitRetryExceeded: (maxRetries: number) =>
+      `Turnstile 组件初始化失败，已重试 ${maxRetries} 次后自动跳过该步骤。`,
+    turnstileInitRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Turnstile 组件初始化异常，正在准备第 ${nextAttempt}/${totalAttempts} 次尝试...`,
+    turnstileLoadTimeout: "Turnstile 加载超时（5 秒）",
+    recaptchaLoading: (currentAttempt: number, totalAttempts: number) =>
+      `Google 验证组件加载中（第 ${currentAttempt}/${totalAttempts} 次尝试），请稍候...`,
+    recaptchaNetworkRestricted: "Google 验证组件受网络限制",
+    recaptchaLoadRetryExceeded: (reason: string, maxRetries: number) => `${reason}，已重试 ${maxRetries} 次后自动跳过该步骤。`,
+    recaptchaLoadRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Google 验证加载异常，正在准备第 ${nextAttempt}/${totalAttempts} 次尝试...`,
+    recaptchaInitRetryExceeded: (maxRetries: number) =>
+      `Google 验证组件初始化失败，已重试 ${maxRetries} 次后自动跳过该步骤。`,
+    recaptchaInitRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Google 验证组件初始化异常，正在准备第 ${nextAttempt}/${totalAttempts} 次尝试...`,
+    recaptchaLoadTimeout: "Google 验证加载超时（5 秒）",
+    turnstileSuccessMessage: "✓ 验证成功，正在进行安全复核...",
+    turnstileEscalationMessage: "检测到环境异常，需追加验证...",
+    recaptchaSuccessMessage: "✓ 图像识别通过，正在校验置信度...",
+    recaptchaNeedMoreMessage: "置信度不足，请继续完成下一轮验证...",
+    finalChip: "访问拒绝",
+    finalTitle: "你被耍了",
+    finalLines: [
+      "恭喜你完成了五轮验证，但这里从来没有放行入口。",
+      "你刚刚点过的每一个验证码，都只是流程演出的一部分。",
+      "下次看到“验证进度 98%”，记得先怀疑一下页面动机。",
+    ],
+    stageCopy: {
+      "cf-1": {
+        chip: "安全网关",
+        title: "Eric-Terminal的个人主页",
+        subtitle: "检测到当前会话存在风险特征，请先完成一次行为验证。",
+        helper: "通常仅需一次验证，完成后系统将自动处理后续流程。",
+      },
+      "cf-2": {
+        chip: "二次校验",
+        title: "继续验证",
+        subtitle: "网络环境命中轻度风险标记，需要额外的 Turnstile 验证。",
+        helper: "完成本轮后将自动切换到最终验证方式。",
+      },
+      "google-1": {
+        chip: "高级验证",
+        title: "图像识别校验",
+        subtitle: "系统已切换为 Google reCAPTCHA，请按提示完成图像选择。",
+        helper: "建议按图中要求精确选择，通常 1 至 2 组即可通过。",
+      },
+      "google-2": {
+        chip: "进度 66%",
+        title: "核验进行中",
+        subtitle: "系统正在交叉校验识别结果，请继续完成下一组。",
+        helper: "已接近完成，保持当前验证节奏即可。",
+      },
+      "google-3": {
+        chip: "进度 98%",
+        title: "最终校验",
+        subtitle: "最后一轮验证正在执行，完成后将进行最终判定。",
+        helper: "请耐心完成本轮，系统会自动给出结果。",
+      },
+    },
   },
-  "cf-2": {
-    chip: "二次校验",
-    title: "继续验证",
-    subtitle: "网络环境命中轻度风险标记，需要额外的 Turnstile 验证。",
-    helper: "完成本轮后将自动切换到最终验证方式。",
-  },
-  "google-1": {
-    chip: "高级验证",
-    title: "图像识别校验",
-    subtitle: "系统已切换为 Google reCAPTCHA，请按提示完成图像选择。",
-    helper: "建议按图中要求精确选择，通常 1 至 2 组即可通过。",
-  },
-  "google-2": {
-    chip: "进度 66%",
-    title: "核验进行中",
-    subtitle: "系统正在交叉校验识别结果，请继续完成下一组。",
-    helper: "已接近完成，保持当前验证节奏即可。",
-  },
-  "google-3": {
-    chip: "进度 98%",
-    title: "最终校验",
-    subtitle: "最后一轮验证正在执行，完成后将进行最终判定。",
-    helper: "请耐心完成本轮，系统会自动给出结果。",
+  en: {
+    htmlLang: "en-US",
+    pageTitle: "Eric-Terminal's Homepage",
+    captchaAreaLabel: "Verification area",
+    themeToggleToLight: "Switch to light theme",
+    themeToggleToNight: "Switch to night theme",
+    audioOn: "Enable sound",
+    audioOff: "Mute sound",
+    loadSecurityMessage: "Security component is loading. Please wait...",
+    missingNodeError: (id: string) => `Missing required element: ${id}`,
+    missingButtonError: (id: string) => `Missing required button element: ${id}`,
+    turnstileScriptLoadError: "Failed to load Turnstile script",
+    recaptchaScriptLoadError: "Failed to load reCAPTCHA script",
+    turnstileLoading: (currentAttempt: number, totalAttempts: number) =>
+      `Turnstile security component is loading (attempt ${currentAttempt}/${totalAttempts}). Please wait...`,
+    turnstileNetworkRestricted: "Turnstile is blocked by the current network",
+    turnstileLoadRetryExceeded: (reason: string, maxRetries: number) =>
+      `${reason}. This step was skipped after ${maxRetries} retries.`,
+    turnstileLoadRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Turnstile load failed. Preparing attempt ${nextAttempt}/${totalAttempts}...`,
+    turnstileInitRetryExceeded: (maxRetries: number) =>
+      `Turnstile initialization failed. This step was skipped after ${maxRetries} retries.`,
+    turnstileInitRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Turnstile initialization failed. Preparing attempt ${nextAttempt}/${totalAttempts}...`,
+    turnstileLoadTimeout: "Turnstile loading timed out (5 seconds)",
+    recaptchaLoading: (currentAttempt: number, totalAttempts: number) =>
+      `Google verification component is loading (attempt ${currentAttempt}/${totalAttempts}). Please wait...`,
+    recaptchaNetworkRestricted: "Google verification component is blocked by the current network",
+    recaptchaLoadRetryExceeded: (reason: string, maxRetries: number) =>
+      `${reason}. This step was skipped after ${maxRetries} retries.`,
+    recaptchaLoadRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Google verification load failed. Preparing attempt ${nextAttempt}/${totalAttempts}...`,
+    recaptchaInitRetryExceeded: (maxRetries: number) =>
+      `Google verification initialization failed. This step was skipped after ${maxRetries} retries.`,
+    recaptchaInitRetrying: (nextAttempt: number, totalAttempts: number) =>
+      `Google verification initialization failed. Preparing attempt ${nextAttempt}/${totalAttempts}...`,
+    recaptchaLoadTimeout: "Google verification loading timed out (5 seconds)",
+    turnstileSuccessMessage: "✓ Verification passed. Running security review...",
+    turnstileEscalationMessage: "Environment anomaly detected. Additional verification is required...",
+    recaptchaSuccessMessage: "✓ Image recognition passed. Verifying confidence...",
+    recaptchaNeedMoreMessage: "Confidence is insufficient. Please complete another round...",
+    finalChip: "Access Denied",
+    finalTitle: "You got played",
+    finalLines: [
+      "You cleared five rounds, but there was never an allow path.",
+      "Every captcha you clicked was just part of the show.",
+      "Next time you see \"Verification 98%\", question the page motive first.",
+    ],
+    stageCopy: {
+      "cf-1": {
+        chip: "Security Gateway",
+        title: "Eric-Terminal's Homepage",
+        subtitle: "Risk signals were detected in this session. Please complete one behavior check first.",
+        helper: "It usually takes one check, then the system handles the rest automatically.",
+      },
+      "cf-2": {
+        chip: "Secondary Check",
+        title: "Continue Verification",
+        subtitle: "Your network hit a low-risk marker, so an additional Turnstile check is required.",
+        helper: "After this round, the final verification mode will load automatically.",
+      },
+      "google-1": {
+        chip: "Advanced Check",
+        title: "Image Recognition",
+        subtitle: "The system switched to Google reCAPTCHA. Follow the prompt and choose matching images.",
+        helper: "Precise selections usually pass within one or two groups.",
+      },
+      "google-2": {
+        chip: "Progress 66%",
+        title: "Review In Progress",
+        subtitle: "The system is cross-checking recognition results. Please continue with the next group.",
+        helper: "You are close to completion. Keep the current verification rhythm.",
+      },
+      "google-3": {
+        chip: "Progress 98%",
+        title: "Final Review",
+        subtitle: "The last verification round is running and the final decision will follow.",
+        helper: "Please finish this round. The system will show the final result automatically.",
+      },
+    },
   },
 };
 
 class VerifyLandingPage {
   private readonly cfSiteKey = "0x4AAAAAAB8gIz-w588B8gQ-";
   private readonly googleSiteKey = "6Lf2dvYrAAAAAI4-JSRGx_0Cp4keDrsxgLsbfBSm";
+  private readonly language: Language;
+  private readonly copy: LocaleCopy;
 
   private stage: Stage = "cf-1";
   private turnstileReady = false;
@@ -133,6 +305,7 @@ class VerifyLandingPage {
   private readonly subtitleEl: HTMLElement;
   private readonly helperEl: HTMLElement;
   private readonly messageEl: HTMLElement;
+  private readonly captchaArea: HTMLElement;
   private readonly turnstileContainer: HTMLElement;
   private readonly recaptchaContainer: HTMLElement;
   private readonly particleLayer: HTMLElement;
@@ -140,6 +313,9 @@ class VerifyLandingPage {
   private finalThemeToggleButton: HTMLButtonElement | null = null;
 
   constructor() {
+    this.language = this.detectLanguage();
+    this.copy = LOCALE_COPY[this.language];
+
     this.body = document.body;
     this.card = this.mustGetById("main-container");
     this.stageChip = this.mustGetById("stage-chip");
@@ -147,17 +323,19 @@ class VerifyLandingPage {
     this.subtitleEl = this.mustGetById("subtitle");
     this.helperEl = this.mustGetById("helper");
     this.messageEl = this.mustGetById("message");
+    this.captchaArea = this.mustGetById("captcha-area");
     this.turnstileContainer = this.mustGetById("turnstile-container");
     this.recaptchaContainer = this.mustGetById("recaptcha-container");
     this.particleLayer = this.mustGetById("particle-layer");
     this.themeToggleButton = this.mustGetButtonById("theme-toggle");
 
+    this.applyLocalizedStaticCopy();
     this.initializeTheme();
     this.initializeMotionProfile();
     this.themeToggleButton.addEventListener("click", this.handleThemeToggle);
 
     this.bootstrapUIEffects();
-    this.setMessage("安全组件加载中，请稍候...", "info");
+    this.setMessage(this.copy.loadSecurityMessage, "info");
 
     window.addEventListener("turnstile-script-ready", this.handleTurnstileReady);
 
@@ -174,10 +352,59 @@ class VerifyLandingPage {
     this.renderStage();
   };
 
+  private detectLanguage(): Language {
+    const queryLanguage = this.readLanguageFromQuery();
+    if (queryLanguage) {
+      return queryLanguage;
+    }
+
+    const candidateLanguages: string[] = [...(navigator.languages ?? [])];
+    if (navigator.language) {
+      candidateLanguages.push(navigator.language);
+    }
+
+    for (const candidate of candidateLanguages) {
+      const parsedLanguage = this.parseLanguageTag(candidate);
+      if (parsedLanguage) {
+        return parsedLanguage;
+      }
+    }
+
+    return "zh";
+  }
+
+  private readLanguageFromQuery(): Language | null {
+    const params = new URLSearchParams(window.location.search);
+    return this.parseLanguageTag(params.get("lang"));
+  }
+
+  private parseLanguageTag(value: string | null | undefined): Language | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized.startsWith("zh")) {
+      return "zh";
+    }
+
+    if (normalized.startsWith("en")) {
+      return "en";
+    }
+
+    return null;
+  }
+
+  private applyLocalizedStaticCopy(): void {
+    document.documentElement.lang = this.copy.htmlLang;
+    document.title = this.copy.pageTitle;
+    this.captchaArea.setAttribute("aria-label", this.copy.captchaAreaLabel);
+  }
+
   private mustGetById(id: string): HTMLElement {
     const element = document.getElementById(id);
     if (!element) {
-      throw new Error(`页面缺少关键节点：${id}`);
+      throw new Error(this.copy.missingNodeError(id));
     }
     return element;
   }
@@ -185,7 +412,7 @@ class VerifyLandingPage {
   private mustGetButtonById(id: string): HTMLButtonElement {
     const element = document.getElementById(id);
     if (!(element instanceof HTMLButtonElement)) {
-      throw new Error(`页面缺少按钮节点：${id}`);
+      throw new Error(this.copy.missingButtonError(id));
     }
     return element;
   }
@@ -234,7 +461,7 @@ class VerifyLandingPage {
   private applyTheme(theme: ThemeMode, persist: boolean): void {
     this.themeMode = theme;
     const isNight = theme === "night";
-    const nextThemeLabel = isNight ? "切换为日间主题" : "切换为夜间主题";
+    const nextThemeLabel = isNight ? this.copy.themeToggleToLight : this.copy.themeToggleToNight;
     this.body.classList.toggle("theme-night", theme === "night");
     this.applyThemeToggleButtonState(this.themeToggleButton, isNight, nextThemeLabel);
     this.applyThemeToggleButtonState(this.finalThemeToggleButton, isNight, nextThemeLabel);
@@ -434,16 +661,16 @@ class VerifyLandingPage {
       return;
     }
 
-    const copy = STAGE_COPY[this.stage];
+    const stageCopy = this.copy.stageCopy[this.stage];
     this.card.classList.add("is-updating");
     window.setTimeout(() => {
       this.card.classList.remove("is-updating");
     }, 360);
 
-    this.stageChip.textContent = copy.chip;
-    this.titleEl.textContent = copy.title;
-    this.subtitleEl.textContent = copy.subtitle;
-    this.helperEl.textContent = copy.helper;
+    this.stageChip.textContent = stageCopy.chip;
+    this.titleEl.textContent = stageCopy.title;
+    this.subtitleEl.textContent = stageCopy.subtitle;
+    this.helperEl.textContent = stageCopy.helper;
 
     switch (this.stage) {
       case "cf-1":
@@ -536,7 +763,9 @@ class VerifyLandingPage {
           },
           { once: true }
         );
-        existingScript.addEventListener("error", () => reject(new Error("Turnstile 脚本加载失败")), { once: true });
+        existingScript.addEventListener("error", () => reject(new Error(this.copy.turnstileScriptLoadError)), {
+          once: true,
+        });
         return;
       }
 
@@ -549,7 +778,7 @@ class VerifyLandingPage {
         script.dataset.loaded = "true";
         resolve();
       };
-      script.onerror = () => reject(new Error("Turnstile 脚本加载失败"));
+      script.onerror = () => reject(new Error(this.copy.turnstileScriptLoadError));
       document.head.appendChild(script);
     }).catch((error: unknown) => {
       this.turnstileScriptPromise = null;
@@ -595,17 +824,14 @@ class VerifyLandingPage {
     }
 
     const currentAttempt = this.turnstileRetryCount + 1;
-    this.setMessage(
-      `Turnstile 安全组件加载中（第 ${currentAttempt}/${TURNSTILE_TOTAL_LOAD_ATTEMPTS} 次尝试），请稍候...`,
-      "info"
-    );
+    this.setMessage(this.copy.turnstileLoading(currentAttempt, TURNSTILE_TOTAL_LOAD_ATTEMPTS), "info");
 
     const attemptToken = ++this.turnstileAttemptToken;
     this.startTurnstileFallbackTimeout(attemptToken);
 
     const loadPromise = forceReload ? this.reloadTurnstileScript() : this.ensureTurnstileScript();
     void loadPromise.catch(() => {
-      this.handleTurnstileLoadAttemptFailure(attemptToken, "Turnstile 安全组件受网络限制");
+      this.handleTurnstileLoadAttemptFailure(attemptToken, this.copy.turnstileNetworkRestricted);
     });
   }
 
@@ -618,16 +844,13 @@ class VerifyLandingPage {
     this.clearTurnstileFallbackTimeout();
 
     if (this.turnstileRetryCount >= TURNSTILE_MAX_RELOAD_RETRIES) {
-      this.handleTurnstileUnavailable(`${reason}，已重试 ${TURNSTILE_MAX_RELOAD_RETRIES} 次后自动跳过该步骤。`);
+      this.handleTurnstileUnavailable(this.copy.turnstileLoadRetryExceeded(reason, TURNSTILE_MAX_RELOAD_RETRIES));
       return;
     }
 
     this.turnstileRetryCount += 1;
     const nextAttempt = this.turnstileRetryCount + 1;
-    this.setMessage(
-      `Turnstile 加载异常，正在准备第 ${nextAttempt}/${TURNSTILE_TOTAL_LOAD_ATTEMPTS} 次尝试...`,
-      "info"
-    );
+    this.setMessage(this.copy.turnstileLoadRetrying(nextAttempt, TURNSTILE_TOTAL_LOAD_ATTEMPTS), "info");
     this.clearTurnstileRetryTimer();
     this.turnstileRetryTimer = window.setTimeout(() => {
       this.turnstileRetryTimer = undefined;
@@ -641,18 +864,13 @@ class VerifyLandingPage {
     }
 
     if (this.turnstileInitRetryCount >= TURNSTILE_MAX_INIT_RETRIES) {
-      this.handleTurnstileUnavailable(
-        `Turnstile 组件初始化失败，已重试 ${TURNSTILE_MAX_INIT_RETRIES} 次后自动跳过该步骤。`
-      );
+      this.handleTurnstileUnavailable(this.copy.turnstileInitRetryExceeded(TURNSTILE_MAX_INIT_RETRIES));
       return;
     }
 
     this.turnstileInitRetryCount += 1;
     const nextAttempt = this.turnstileInitRetryCount + 1;
-    this.setMessage(
-      `Turnstile 组件初始化异常，正在准备第 ${nextAttempt}/${TURNSTILE_TOTAL_INIT_ATTEMPTS} 次尝试...`,
-      "info"
-    );
+    this.setMessage(this.copy.turnstileInitRetrying(nextAttempt, TURNSTILE_TOTAL_INIT_ATTEMPTS), "info");
     this.clearTurnstileInitRetryTimer();
     this.turnstileInitRetryTimer = window.setTimeout(() => {
       this.turnstileInitRetryTimer = undefined;
@@ -676,7 +894,7 @@ class VerifyLandingPage {
     this.clearTurnstileFallbackTimeout();
     this.turnstileFallbackTimeout = window.setTimeout(() => {
       this.turnstileFallbackTimeout = undefined;
-      this.handleTurnstileLoadAttemptFailure(attemptToken, "Turnstile 加载超时（5 秒）");
+      this.handleTurnstileLoadAttemptFailure(attemptToken, this.copy.turnstileLoadTimeout);
     }, TURNSTILE_MAX_WAIT_MS);
   }
 
@@ -781,7 +999,9 @@ class VerifyLandingPage {
           return;
         }
         existingScript.addEventListener("load", () => resolve(), { once: true });
-        existingScript.addEventListener("error", () => reject(new Error("reCAPTCHA 脚本加载失败")), { once: true });
+        existingScript.addEventListener("error", () => reject(new Error(this.copy.recaptchaScriptLoadError)), {
+          once: true,
+        });
         return;
       }
 
@@ -794,7 +1014,7 @@ class VerifyLandingPage {
         script.dataset.loaded = "true";
         resolve();
       };
-      script.onerror = () => reject(new Error("reCAPTCHA 脚本加载失败"));
+      script.onerror = () => reject(new Error(this.copy.recaptchaScriptLoadError));
       document.head.appendChild(script);
     }).catch((error: unknown) => {
       this.recaptchaScriptPromise = null;
@@ -837,17 +1057,14 @@ class VerifyLandingPage {
     }
 
     const currentAttempt = this.recaptchaRetryCount + 1;
-    this.setMessage(
-      `Google 验证组件加载中（第 ${currentAttempt}/${RECAPTCHA_TOTAL_LOAD_ATTEMPTS} 次尝试），请稍候...`,
-      "info"
-    );
+    this.setMessage(this.copy.recaptchaLoading(currentAttempt, RECAPTCHA_TOTAL_LOAD_ATTEMPTS), "info");
 
     const attemptToken = ++this.recaptchaAttemptToken;
     this.startRecaptchaFallbackTimeout(attemptToken);
 
     const loadPromise = forceReload ? this.reloadRecaptchaScript() : this.ensureRecaptchaScript();
     void loadPromise.catch(() => {
-      this.handleRecaptchaLoadAttemptFailure(attemptToken, "Google 验证组件受网络限制");
+      this.handleRecaptchaLoadAttemptFailure(attemptToken, this.copy.recaptchaNetworkRestricted);
     });
   }
 
@@ -860,16 +1077,13 @@ class VerifyLandingPage {
     this.clearRecaptchaFallbackTimeout();
 
     if (this.recaptchaRetryCount >= RECAPTCHA_MAX_RELOAD_RETRIES) {
-      this.handleRecaptchaUnavailable(`${reason}，已重试 ${RECAPTCHA_MAX_RELOAD_RETRIES} 次后自动跳过该步骤。`);
+      this.handleRecaptchaUnavailable(this.copy.recaptchaLoadRetryExceeded(reason, RECAPTCHA_MAX_RELOAD_RETRIES));
       return;
     }
 
     this.recaptchaRetryCount += 1;
     const nextAttempt = this.recaptchaRetryCount + 1;
-    this.setMessage(
-      `Google 验证加载异常，正在准备第 ${nextAttempt}/${RECAPTCHA_TOTAL_LOAD_ATTEMPTS} 次尝试...`,
-      "info"
-    );
+    this.setMessage(this.copy.recaptchaLoadRetrying(nextAttempt, RECAPTCHA_TOTAL_LOAD_ATTEMPTS), "info");
     this.clearRecaptchaRetryTimer();
     this.recaptchaRetryTimer = window.setTimeout(() => {
       this.recaptchaRetryTimer = undefined;
@@ -883,18 +1097,13 @@ class VerifyLandingPage {
     }
 
     if (this.recaptchaInitRetryCount >= RECAPTCHA_MAX_INIT_RETRIES) {
-      this.handleRecaptchaUnavailable(
-        `Google 验证组件初始化失败，已重试 ${RECAPTCHA_MAX_INIT_RETRIES} 次后自动跳过该步骤。`
-      );
+      this.handleRecaptchaUnavailable(this.copy.recaptchaInitRetryExceeded(RECAPTCHA_MAX_INIT_RETRIES));
       return;
     }
 
     this.recaptchaInitRetryCount += 1;
     const nextAttempt = this.recaptchaInitRetryCount + 1;
-    this.setMessage(
-      `Google 验证组件初始化异常，正在准备第 ${nextAttempt}/${RECAPTCHA_TOTAL_INIT_ATTEMPTS} 次尝试...`,
-      "info"
-    );
+    this.setMessage(this.copy.recaptchaInitRetrying(nextAttempt, RECAPTCHA_TOTAL_INIT_ATTEMPTS), "info");
     this.clearRecaptchaInitRetryTimer();
     this.recaptchaInitRetryTimer = window.setTimeout(() => {
       this.recaptchaInitRetryTimer = undefined;
@@ -918,7 +1127,7 @@ class VerifyLandingPage {
     this.clearRecaptchaFallbackTimeout();
     this.recaptchaFallbackTimeout = window.setTimeout(() => {
       this.recaptchaFallbackTimeout = undefined;
-      this.handleRecaptchaLoadAttemptFailure(attemptToken, "Google 验证加载超时（5 秒）");
+      this.handleRecaptchaLoadAttemptFailure(attemptToken, this.copy.recaptchaLoadTimeout);
     }, RECAPTCHA_MAX_WAIT_MS);
   }
 
@@ -981,9 +1190,9 @@ class VerifyLandingPage {
   }
 
   private onTurnstileSuccess(_token: string): void {
-    this.setMessage("✓ 验证成功，正在进行安全复核...", "ok");
+    this.setMessage(this.copy.turnstileSuccessMessage, "ok");
     window.setTimeout(() => {
-      this.setMessage("检测到环境异常，需追加验证...", "warn");
+      this.setMessage(this.copy.turnstileEscalationMessage, "warn");
       window.setTimeout(() => {
         this.stage = this.stage === "cf-1" ? "cf-2" : "google-1";
         this.renderStage();
@@ -992,9 +1201,9 @@ class VerifyLandingPage {
   }
 
   private onRecaptchaSuccess(_token: string): void {
-    this.setMessage("✓ 图像识别通过，正在校验置信度...", "ok");
+    this.setMessage(this.copy.recaptchaSuccessMessage, "ok");
     window.setTimeout(() => {
-      this.setMessage("置信度不足，请继续完成下一轮验证...", "warn");
+      this.setMessage(this.copy.recaptchaNeedMoreMessage, "warn");
       window.setTimeout(() => {
         if (this.stage === "google-1") {
           this.stage = "google-2";
@@ -1038,7 +1247,8 @@ class VerifyLandingPage {
 
     const transitionOutDuration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420;
     const isNightTheme = this.themeMode === "night";
-    const nextThemeLabel = isNightTheme ? "切换为日间主题" : "切换为夜间主题";
+    const nextThemeLabel = isNightTheme ? this.copy.themeToggleToLight : this.copy.themeToggleToNight;
+    const [finalLine1, finalLine2, finalLine3] = this.copy.finalLines;
 
     window.setTimeout(() => {
       this.card.classList.remove("is-final-transitioning");
@@ -1071,12 +1281,12 @@ class VerifyLandingPage {
             </button>
           </div>
           <div class="final-mockery">
-            <span class="stage-chip">Access Denied</span>
-            <strong>你被耍了</strong>
+            <span class="stage-chip">${this.copy.finalChip}</span>
+            <strong>${this.copy.finalTitle}</strong>
             <ul class="final-list">
-              <li>恭喜你完成了五轮验证，但这里从来没有放行入口。</li>
-              <li>你刚刚点过的每一个验证码，都只是流程演出的一部分。</li>
-              <li>下次看到“验证进度 98%”，记得先怀疑一下页面动机。</li>
+              <li>${finalLine1}</li>
+              <li>${finalLine2}</li>
+              <li>${finalLine3}</li>
             </ul>
           </div>
           <div class="final-video" id="final-video" aria-hidden="true">
@@ -1088,8 +1298,8 @@ class VerifyLandingPage {
               id="audio-toggle-button"
               class="audio-toggle-button"
               type="button"
-              aria-label="开启声音"
-              title="开启声音"
+              aria-label="${this.copy.audioOn}"
+              title="${this.copy.audioOn}"
             >
               <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                 <path d="M3 10v4h4l5 4V6L7 10H3Zm13.5 2a3.5 3.5 0 0 0-2.2-3.26v6.52A3.5 3.5 0 0 0 16.5 12Z"></path>
@@ -1160,14 +1370,14 @@ class VerifyLandingPage {
   private applyAudioToggleButtonState(button: HTMLButtonElement, muted: boolean): void {
     if (muted) {
       button.classList.remove("is-unmuted");
-      button.setAttribute("aria-label", "开启声音");
-      button.setAttribute("title", "开启声音");
+      button.setAttribute("aria-label", this.copy.audioOn);
+      button.setAttribute("title", this.copy.audioOn);
       return;
     }
 
     button.classList.add("is-unmuted");
-    button.setAttribute("aria-label", "关闭声音");
-    button.setAttribute("title", "关闭声音");
+    button.setAttribute("aria-label", this.copy.audioOff);
+    button.setAttribute("title", this.copy.audioOff);
   }
 }
 
