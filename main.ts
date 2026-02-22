@@ -8,6 +8,9 @@ const RECAPTCHA_SCRIPT_ID = "recaptcha-api-script";
 const RECAPTCHA_SCRIPT_SRC = "https://www.recaptcha.net/recaptcha/api.js?render=explicit";
 const RECAPTCHA_POLL_INTERVAL_MS = 250;
 const RECAPTCHA_MAX_WAIT_MS = 5000;
+const RECAPTCHA_MAX_RELOAD_RETRIES = 3;
+const RECAPTCHA_RETRY_DELAY_MS = 700;
+const RECAPTCHA_TOTAL_LOAD_ATTEMPTS = RECAPTCHA_MAX_RELOAD_RETRIES + 1;
 const FINAL_VIDEO_WEBM_URL = "https://assets.ericterminal.com/Rickroll.webm";
 const FINAL_VIDEO_MP4_FALLBACK_URL = "./rick.mp4";
 
@@ -84,7 +87,10 @@ class VerifyLandingPage {
   private recaptchaWidgetId: number | undefined;
   private recaptchaWaitTimer: number | undefined;
   private recaptchaFallbackTimeout: number | undefined;
+  private recaptchaRetryTimer: number | undefined;
   private recaptchaScriptPromise: Promise<void> | null = null;
+  private recaptchaRetryCount = 0;
+  private recaptchaAttemptToken = 0;
   private preloadedVideo: HTMLVideoElement | null = null;
   private themeMode: ThemeMode = "light";
   private motionProfile: MotionProfile = "standard";
@@ -399,8 +405,7 @@ class VerifyLandingPage {
 
   private renderStage(): void {
     if (this.stage === "final-mockery") {
-      this.clearRecaptchaWaitTimer();
-      this.clearRecaptchaFallbackTimeout();
+      this.resetRecaptchaLoadingState();
       this.showFinalStage();
       return;
     }
@@ -418,8 +423,7 @@ class VerifyLandingPage {
 
     switch (this.stage) {
       case "cf-1":
-        this.clearRecaptchaWaitTimer();
-        this.clearRecaptchaFallbackTimeout();
+        this.resetRecaptchaLoadingState();
         this.useTurnstileView();
         if (!this.turnstileReady || !window.turnstile) {
           this.setMessage("安全组件加载中，请稍候...", "info");
@@ -437,8 +441,7 @@ class VerifyLandingPage {
         break;
 
       case "cf-2":
-        this.clearRecaptchaWaitTimer();
-        this.clearRecaptchaFallbackTimeout();
+        this.resetRecaptchaLoadingState();
         this.useTurnstileView();
         if (!this.turnstileReady || !window.turnstile || !this.turnstileWidgetId) {
           this.setMessage("安全组件准备中，请稍候...", "info");
@@ -476,8 +479,6 @@ class VerifyLandingPage {
   }
 
   private mountOrResetRecaptcha(): void {
-    this.startRecaptchaFallbackTimeout();
-
     if (!window.grecaptcha) {
       this.waitForRecaptcha();
       return;
@@ -499,8 +500,7 @@ class VerifyLandingPage {
       return;
     }
 
-    this.clearRecaptchaWaitTimer();
-    this.clearRecaptchaFallbackTimeout();
+    this.resetRecaptchaLoadingState();
   }
 
   private ensureRecaptchaScript(): Promise<void> {
@@ -543,24 +543,75 @@ class VerifyLandingPage {
     return this.recaptchaScriptPromise;
   }
 
+  private reloadRecaptchaScript(): Promise<void> {
+    this.recaptchaScriptPromise = null;
+    const existingScript = document.getElementById(RECAPTCHA_SCRIPT_ID);
+    if (existingScript instanceof HTMLScriptElement) {
+      existingScript.remove();
+    }
+    return this.ensureRecaptchaScript();
+  }
+
   private waitForRecaptcha(): void {
     if (this.recaptchaWaitTimer !== undefined) {
       return;
     }
 
-    this.startRecaptchaFallbackTimeout();
-    this.setMessage("Google 验证组件加载中，请稍候...", "info");
-    void this.ensureRecaptchaScript().catch(() => {
-      this.handleRecaptchaUnavailable("Google 验证组件受网络限制，已自动跳过该步骤。");
-    });
+    this.recaptchaRetryCount = 0;
+    this.startRecaptchaLoadAttempt(false);
 
     this.recaptchaWaitTimer = window.setInterval(() => {
       if (window.grecaptcha) {
-        this.clearRecaptchaWaitTimer();
-        this.clearRecaptchaFallbackTimeout();
+        this.resetRecaptchaLoadingState();
         this.renderStage();
       }
     }, RECAPTCHA_POLL_INTERVAL_MS);
+  }
+
+  private startRecaptchaLoadAttempt(forceReload: boolean): void {
+    if (window.grecaptcha || !this.isGoogleStage()) {
+      return;
+    }
+
+    const currentAttempt = this.recaptchaRetryCount + 1;
+    this.setMessage(
+      `Google 验证组件加载中（第 ${currentAttempt}/${RECAPTCHA_TOTAL_LOAD_ATTEMPTS} 次尝试），请稍候...`,
+      "info"
+    );
+
+    const attemptToken = ++this.recaptchaAttemptToken;
+    this.startRecaptchaFallbackTimeout(attemptToken);
+
+    const loadPromise = forceReload ? this.reloadRecaptchaScript() : this.ensureRecaptchaScript();
+    void loadPromise.catch(() => {
+      this.handleRecaptchaLoadAttemptFailure(attemptToken, "Google 验证组件受网络限制");
+    });
+  }
+
+  private handleRecaptchaLoadAttemptFailure(attemptToken: number, reason: string): void {
+    if (attemptToken !== this.recaptchaAttemptToken || window.grecaptcha || !this.isGoogleStage()) {
+      return;
+    }
+
+    this.recaptchaAttemptToken += 1;
+    this.clearRecaptchaFallbackTimeout();
+
+    if (this.recaptchaRetryCount >= RECAPTCHA_MAX_RELOAD_RETRIES) {
+      this.handleRecaptchaUnavailable(`${reason}，已重试 ${RECAPTCHA_MAX_RELOAD_RETRIES} 次后自动跳过该步骤。`);
+      return;
+    }
+
+    this.recaptchaRetryCount += 1;
+    const nextAttempt = this.recaptchaRetryCount + 1;
+    this.setMessage(
+      `Google 验证加载异常，正在准备第 ${nextAttempt}/${RECAPTCHA_TOTAL_LOAD_ATTEMPTS} 次尝试...`,
+      "info"
+    );
+    this.clearRecaptchaRetryTimer();
+    this.recaptchaRetryTimer = window.setTimeout(() => {
+      this.recaptchaRetryTimer = undefined;
+      this.startRecaptchaLoadAttempt(true);
+    }, RECAPTCHA_RETRY_DELAY_MS);
   }
 
   private clearRecaptchaWaitTimer(): void {
@@ -572,14 +623,11 @@ class VerifyLandingPage {
     this.recaptchaWaitTimer = undefined;
   }
 
-  private startRecaptchaFallbackTimeout(): void {
-    if (this.recaptchaFallbackTimeout !== undefined) {
-      return;
-    }
-
+  private startRecaptchaFallbackTimeout(attemptToken: number): void {
+    this.clearRecaptchaFallbackTimeout();
     this.recaptchaFallbackTimeout = window.setTimeout(() => {
       this.recaptchaFallbackTimeout = undefined;
-      this.handleRecaptchaUnavailable("Google 验证加载超时（5 秒），已自动跳过该步骤。");
+      this.handleRecaptchaLoadAttemptFailure(attemptToken, "Google 验证加载超时（5 秒）");
     }, RECAPTCHA_MAX_WAIT_MS);
   }
 
@@ -592,17 +640,37 @@ class VerifyLandingPage {
     this.recaptchaFallbackTimeout = undefined;
   }
 
-  private handleRecaptchaUnavailable(message: string): void {
+  private clearRecaptchaRetryTimer(): void {
+    if (this.recaptchaRetryTimer === undefined) {
+      return;
+    }
+
+    window.clearTimeout(this.recaptchaRetryTimer);
+    this.recaptchaRetryTimer = undefined;
+  }
+
+  private resetRecaptchaLoadingState(): void {
     this.clearRecaptchaWaitTimer();
     this.clearRecaptchaFallbackTimeout();
+    this.clearRecaptchaRetryTimer();
+    this.recaptchaRetryCount = 0;
+    this.recaptchaAttemptToken += 1;
+  }
 
-    if (this.stage !== "google-1" && this.stage !== "google-2" && this.stage !== "google-3") {
+  private isGoogleStage(): boolean {
+    return this.stage === "google-1" || this.stage === "google-2" || this.stage === "google-3";
+  }
+
+  private handleRecaptchaUnavailable(message: string): void {
+    this.resetRecaptchaLoadingState();
+
+    if (!this.isGoogleStage()) {
       return;
     }
 
     this.setMessage(message, "warn");
     window.setTimeout(() => {
-      if (this.stage !== "google-1" && this.stage !== "google-2" && this.stage !== "google-3") {
+      if (!this.isGoogleStage()) {
         return;
       }
       this.stage = "final-mockery";
