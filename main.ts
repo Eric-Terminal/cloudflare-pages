@@ -168,9 +168,13 @@ class VerifyLandingPage {
 
   private applyTheme(theme: ThemeMode, persist: boolean): void {
     this.themeMode = theme;
+    const isNight = theme === "night";
+    const nextThemeLabel = isNight ? "切换为日间主题" : "切换为夜间主题";
     this.body.classList.toggle("theme-night", theme === "night");
-    this.themeToggleButton.setAttribute("aria-pressed", theme === "night" ? "true" : "false");
-    this.themeToggleButton.textContent = theme === "night" ? "切换为日间主题" : "切换为夜间主题";
+    this.themeToggleButton.classList.toggle("is-night", isNight);
+    this.themeToggleButton.setAttribute("aria-pressed", isNight ? "true" : "false");
+    this.themeToggleButton.setAttribute("aria-label", nextThemeLabel);
+    this.themeToggleButton.setAttribute("title", nextThemeLabel);
 
     if (!persist) {
       return;

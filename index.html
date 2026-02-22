@@ -58,8 +58,27 @@
       </section>
 
       <div class="theme-bar">
-        <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
-          切换为夜间主题
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="切换为夜间主题"
+          title="切换为夜间主题"
+        >
+          <span class="theme-icon icon-sun" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.4"></circle>
+              <path
+                d="M12 2.2v2.2M12 19.6v2.2M21.8 12h-2.2M4.4 12H2.2M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6M18.9 18.9l-1.6-1.6M6.7 6.7 5.1 5.1"
+              ></path>
+            </svg>
+          </span>
+          <span class="theme-icon icon-moon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M15.4 3.5a8.9 8.9 0 1 0 5.1 15.8A9.2 9.2 0 0 1 15.4 3.5Z"></path>
+            </svg>
+          </span>
         </button>
       </div>
     </main>
