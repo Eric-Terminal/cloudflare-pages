@@ -1,265 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>身份验证中心</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006b8a 100%);
-            background-attachment: fixed;
-            color: #1d1d1f; 
-            transition: background 0.6s ease, color 0.6s ease;
-            padding: 20px;
-        }
-        .container { 
-            width: 100%;
-            max-width: 480px; 
-            padding: 40px 44px; 
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 24px; 
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            text-align: left;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #title { 
-            font-size: 28px; 
-            font-weight: 600; 
-            margin: 0 0 12px; 
-            color: #1d1d1f;
-            letter-spacing: -0.02em;
-        }
-        #subtitle { 
-            margin: 0 0 28px; 
-            color: #6e6e73; 
-            line-height: 1.6;
-            font-size: 15px;
-        }
-        #message { 
-            margin-top: 24px; 
-            color: #ff3b30; 
-            font-weight: 500; 
-            min-height: 20px; 
-            transition: color 0.3s ease;
-            font-size: 14px;
-        }
-        .helper { 
-            margin-top: 20px; 
-            font-size: 13px; 
-            color: #86868b; 
-            line-height: 1.6; 
-            border-top: 1px solid rgba(0, 0, 0, 0.08); 
-            padding-top: 18px;
-        }
-        body.final-stage { 
-            background: linear-gradient(135deg, #0a1828 0%, #1e3a5f 50%, #002642 100%);
-            color: #f5f5f7;
-        }
-        .final-stage-card { 
-            max-width: 620px;
-            background: rgba(29, 29, 31, 0.88);
-            backdrop-filter: saturate(180%) blur(30px);
-            -webkit-backdrop-filter: saturate(180%) blur(30px);
-            border-radius: 28px; 
-            padding: 56px 48px; 
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.06); 
-            text-align: center;
-        }
-        .final-mockery { 
-            color: #f5f5f7; 
-            font-size: 17px; 
-            line-height: 1.7;
-        }
-        .final-mockery strong { 
-            color: #ff453a; 
-            display: block; 
-            margin: 24px 0 16px; 
-            letter-spacing: 0.12em; 
-            font-size: 32px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .status-chip { 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 8px 16px; 
-            border-radius: 20px; 
-            font-size: 12px; 
-            font-weight: 600;
-            letter-spacing: 0.08em; 
-            background: rgba(255, 69, 58, 0.15);
-            color: #ff9f0a; 
-            border: 1px solid rgba(255, 159, 10, 0.3);
-            text-transform: uppercase;
-        }
-        .final-mockery p:last-child { 
-            margin-bottom: 0; 
-            color: #a1a1a6;
-        }
-        .final-video { 
-            margin-top: 32px; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-        }
-        .final-video video { 
-            width: 100%; 
-            display: block;
-        }
-    </style>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileScriptLoad&render=explicit" async defer></script>
-    <script src="https://www.recaptcha.net/recaptcha/api.js?render=explicit" async defer></script>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>访问安全网关</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      window.__turnstileReadyEventFired = false;
+      window.onTurnstileScriptLoad = function () {
+        window.__turnstileReadyEventFired = true;
+        window.dispatchEvent(new Event("turnstile-script-ready"));
+      };
+    </script>
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileScriptLoad&render=explicit"
+      async
+      defer
+    ></script>
+    <script
+      src="https://www.recaptcha.net/recaptcha/api.js?render=explicit"
+      async
+      defer
+    ></script>
+  </head>
+  <body>
+    <div class="bg-scene" aria-hidden="true">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+      <div class="grid-layer"></div>
+      <div id="particle-layer" class="particle-layer"></div>
+    </div>
 
-<div class="container" id="main-container">
-    <h1 id="title">访问安全确认</h1>
-    <p id="subtitle">系统正在对当前会话进行风险复核，请按照组件提示完成对应操作。</p>
-    <div id="turnstile-container"></div>
-    <div id="recaptcha-container" style="display: none;"></div>
-    <div id="message"></div>
-    <div class="helper" id="helper">若验证失败请耐心等待系统自动重试，无需刷新页面。</div>
-</div>
+    <main class="page-shell">
+      <section class="verify-card" id="main-container">
+        <div class="spotlight" id="spotlight"></div>
 
-<script>
-    const cfSiteKey = '0x4AAAAAAB8gIz-w588B8gQ-';
-    const googleSiteKey = '6Lf2dvYrAAAAAI4-JSRGx_0Cp4keDrsxgLsbfBSm';
-    const titleEl = document.getElementById('title');
-    const subtitleEl = document.getElementById('subtitle');
-    const messageEl = document.getElementById('message');
-    const helperEl = document.getElementById('helper');
-    const turnstileContainer = document.getElementById('turnstile-container');
-    const recaptchaContainer = document.getElementById('recaptcha-container');
-    let currentStage = 'cf-1'; 
-    let turnstileWidgetId;
-    let recaptchaWidgetId;
+        <header class="stage-header">
+          <span class="stage-chip" id="stage-chip">安全网关</span>
+          <h1 id="title">访问安全确认</h1>
+          <p id="subtitle">系统正在对当前会话进行风险复核，请完成验证后继续访问。</p>
+        </header>
 
-    function updateUI() {
-        messageEl.textContent = '';
-        switch (currentStage) {
-            case 'cf-1':
-                titleEl.textContent = '访问安全确认';
-                subtitleEl.textContent = '检测到您的会话可能存在异常行为。请完成以下验证以继续访问。';
-                helperEl.textContent = '通常此验证仅需一次，完成后将自动跳转至目标页面。';
-                turnstileWidgetId = turnstile.render('#turnstile-container', { sitekey: cfSiteKey, callback: onTurnstileSuccess });
-                break;
-            case 'cf-2':
-                titleEl.textContent = '二次验证确认';
-                subtitleEl.textContent = '您的网络环境存在轻微风险标记，需要进行额外的身份验证。这是最后一次 Turnstile 验证。';
-                helperEl.textContent = '完成后即可访问内容。若失败系统将切换为图像识别方式。';
-                turnstile.reset(turnstileWidgetId);
-                break;
-            case 'google-1':
-                titleEl.textContent = '高级身份验证';
-                subtitleEl.textContent = '系统已升级验证方式为 Google reCAPTCHA。完成图像选择后即可通过验证。';
-                helperEl.textContent = '请仔细选择符合要求的图片，通常 1-2 组即可完成。';
-                turnstileContainer.style.display = 'none';
-                recaptchaContainer.style.display = 'block';
-                if (recaptchaWidgetId === undefined) {
-                    recaptchaWidgetId = grecaptcha.render('recaptcha-container', { sitekey: googleSiteKey, callback: onRecaptchaSuccess });
-                } else {
-                    grecaptcha.reset(recaptchaWidgetId);
-                }
-                preloadVideo();
-                break;
-            case 'google-2':
-                titleEl.textContent = '验证进度：66%';
-                subtitleEl.textContent = '系统正在核验您的选择，请再完成一组图像识别以确保准确性。';
-                helperEl.textContent = '您已接近完成验证，请继续。大部分用户在此步骤即可通过。';
-                grecaptcha.reset(recaptchaWidgetId);
-                break;
-            case 'google-3':
-                titleEl.textContent = '最终验证：98%';
-                subtitleEl.textContent = '即将完成！系统正在进行最后的安全校验，这是最后一组验证。';
-                helperEl.textContent = '验证成功后将立即跳转至内容页面，感谢您的耐心配合。';
-                grecaptcha.reset(recaptchaWidgetId);
-                break;
-            case 'final-mockery':
-                showFinalMessage();
-                break;
-        }
-    }
+        <section class="captcha-area" aria-label="验证区域">
+          <div class="captcha-slot" id="turnstile-container"></div>
+          <div class="captcha-slot hidden" id="recaptcha-container"></div>
+        </section>
 
-    function onTurnstileSuccess(token) {
-        messageEl.textContent = '✓ 验证成功，正在进行安全性复核...';
-        setTimeout(() => {
-            messageEl.textContent = '检测到异常指纹，需要额外验证…';
-            setTimeout(() => {
-                currentStage = currentStage === 'cf-1' ? 'cf-2' : 'google-1';
-                updateUI();
-            }, 1600);
-        }, 800);
-    }
+        <p id="message" class="tone-warn" aria-live="polite"></p>
+        <p class="helper" id="helper">若验证失败请耐心等待系统自动重试，无需刷新页面。</p>
+      </section>
+    </main>
 
-    function onRecaptchaSuccess(token) {
-        messageEl.textContent = '✓ 图像识别通过，正在验证用户身份...';
-        setTimeout(() => {
-            messageEl.textContent = '置信度不足，请继续完成下一组验证…';
-            setTimeout(() => {
-                if (currentStage === 'google-1') currentStage = 'google-2';
-                else if (currentStage === 'google-2') currentStage = 'google-3';
-                else if (currentStage === 'google-3') currentStage = 'final-mockery';
-                updateUI();
-            }, 1600);
-        }, 800);
-    }
-    
-    function onTurnstileScriptLoad() {
-        updateUI();
-    }
-
-    let preloadedVideo = null;
-    function preloadVideo() {
-        if (preloadedVideo) return;
-        preloadedVideo = document.createElement('video');
-        preloadedVideo.preload = 'auto';
-        preloadedVideo.src = './rick.mp4';
-        preloadedVideo.load();
-    }
-
-    function showFinalMessage() {
-        document.body.classList.add('final-stage');
-        const container = document.getElementById('main-container');
-        container.classList.add('final-stage-card');
-        container.innerHTML = `
-            <div class="final-mockery">
-                <span class="status-chip">Access Denied</span>
-                <strong>你被耍了</strong>
-                <p>恭喜你完成了五轮验证！不过很遗憾……</p>
-                <p>这个页面从一开始就没打算让你通过。</p>
-                <p>你刚才点的每一个验证码，都只是在给我们增加娱乐价值。</p>
-                <p>感谢你的参与，下次看到"验证进度98%"记得多个心眼😉</p>
-            </div>
-            <div class="final-video">
-                <video autoplay muted loop playsinline preload="auto">
-                    <source src="./rick.mp4" type="video/mp4">
-                </video>
-            </div>
-        `;
-        const videoEl = container.querySelector('.final-video video');
-        if (videoEl) {
-            const ensurePlay = () => {
-                const playPromise = videoEl.play();
-                if (playPromise && playPromise.catch) {
-                    playPromise.catch(() => setTimeout(ensurePlay, 600));
-                }
-            };
-            ensurePlay();
-        }
-    }
-</script>
-
-</body>
+    <script type="module" src="./main.js"></script>
+  </body>
 </html>
