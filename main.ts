@@ -1,5 +1,8 @@
 type Stage = "cf-1" | "cf-2" | "google-1" | "google-2" | "google-3" | "final-mockery";
 type MessageTone = "ok" | "warn" | "info";
+type ThemeMode = "light" | "night";
+
+const THEME_STORAGE_KEY = "eric-terminal-home-theme";
 
 interface TurnstileAPI {
   render: (
@@ -74,6 +77,7 @@ class VerifyLandingPage {
   private recaptchaWidgetId: number | undefined;
   private recaptchaWaitTimer: number | undefined;
   private preloadedVideo: HTMLVideoElement | null = null;
+  private themeMode: ThemeMode = "light";
 
   private readonly body: HTMLElement;
   private readonly card: HTMLElement;
@@ -85,6 +89,7 @@ class VerifyLandingPage {
   private readonly turnstileContainer: HTMLElement;
   private readonly recaptchaContainer: HTMLElement;
   private readonly particleLayer: HTMLElement;
+  private readonly themeToggleButton: HTMLButtonElement;
 
   constructor() {
     this.body = document.body;
@@ -97,6 +102,10 @@ class VerifyLandingPage {
     this.turnstileContainer = this.mustGetById("turnstile-container");
     this.recaptchaContainer = this.mustGetById("recaptcha-container");
     this.particleLayer = this.mustGetById("particle-layer");
+    this.themeToggleButton = this.mustGetButtonById("theme-toggle");
+
+    this.initializeTheme();
+    this.themeToggleButton.addEventListener("click", this.handleThemeToggle);
 
     this.bootstrapUIEffects();
     this.setMessage("安全组件加载中，请稍候...", "info");
@@ -121,6 +130,57 @@ class VerifyLandingPage {
       throw new Error(`页面缺少关键节点：${id}`);
     }
     return element;
+  }
+
+  private mustGetButtonById(id: string): HTMLButtonElement {
+    const element = document.getElementById(id);
+    if (!(element instanceof HTMLButtonElement)) {
+      throw new Error(`页面缺少按钮节点：${id}`);
+    }
+    return element;
+  }
+
+  private initializeTheme(): void {
+    const storedTheme = this.readStoredTheme();
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme: ThemeMode = storedTheme ?? (prefersDark ? "night" : "light");
+
+    this.applyTheme(initialTheme, false);
+  }
+
+  private readStoredTheme(): ThemeMode | null {
+    try {
+      const value = window.localStorage.getItem(THEME_STORAGE_KEY);
+      if (value === "light" || value === "night") {
+        return value;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private readonly handleThemeToggle = (): void => {
+    const nextTheme: ThemeMode = this.themeMode === "light" ? "night" : "light";
+    this.applyTheme(nextTheme, true);
+  };
+
+  private applyTheme(theme: ThemeMode, persist: boolean): void {
+    this.themeMode = theme;
+    this.body.classList.toggle("theme-night", theme === "night");
+    this.themeToggleButton.setAttribute("aria-pressed", theme === "night" ? "true" : "false");
+    this.themeToggleButton.textContent = theme === "night" ? "切换为日间主题" : "切换为夜间主题";
+
+    if (!persist) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      return;
+    }
   }
 
   private bootstrapUIEffects(): void {

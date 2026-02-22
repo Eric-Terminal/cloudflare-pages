@@ -1,3 +1,4 @@
+const THEME_STORAGE_KEY = "eric-terminal-home-theme";
 const STAGE_COPY = {
     "cf-1": {
         chip: "安全网关",
@@ -37,9 +38,14 @@ class VerifyLandingPage {
         this.stage = "cf-1";
         this.turnstileReady = false;
         this.preloadedVideo = null;
+        this.themeMode = "light";
         this.handleTurnstileReady = () => {
             this.turnstileReady = true;
             this.renderStage();
+        };
+        this.handleThemeToggle = () => {
+            const nextTheme = this.themeMode === "light" ? "night" : "light";
+            this.applyTheme(nextTheme, true);
         };
         this.body = document.body;
         this.card = this.mustGetById("main-container");
@@ -51,6 +57,9 @@ class VerifyLandingPage {
         this.turnstileContainer = this.mustGetById("turnstile-container");
         this.recaptchaContainer = this.mustGetById("recaptcha-container");
         this.particleLayer = this.mustGetById("particle-layer");
+        this.themeToggleButton = this.mustGetButtonById("theme-toggle");
+        this.initializeTheme();
+        this.themeToggleButton.addEventListener("click", this.handleThemeToggle);
         this.bootstrapUIEffects();
         this.setMessage("安全组件加载中，请稍候...", "info");
         window.addEventListener("turnstile-script-ready", this.handleTurnstileReady);
@@ -67,6 +76,46 @@ class VerifyLandingPage {
             throw new Error(`页面缺少关键节点：${id}`);
         }
         return element;
+    }
+    mustGetButtonById(id) {
+        const element = document.getElementById(id);
+        if (!(element instanceof HTMLButtonElement)) {
+            throw new Error(`页面缺少按钮节点：${id}`);
+        }
+        return element;
+    }
+    initializeTheme() {
+        const storedTheme = this.readStoredTheme();
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const initialTheme = storedTheme ?? (prefersDark ? "night" : "light");
+        this.applyTheme(initialTheme, false);
+    }
+    readStoredTheme() {
+        try {
+            const value = window.localStorage.getItem(THEME_STORAGE_KEY);
+            if (value === "light" || value === "night") {
+                return value;
+            }
+        }
+        catch {
+            return null;
+        }
+        return null;
+    }
+    applyTheme(theme, persist) {
+        this.themeMode = theme;
+        this.body.classList.toggle("theme-night", theme === "night");
+        this.themeToggleButton.setAttribute("aria-pressed", theme === "night" ? "true" : "false");
+        this.themeToggleButton.textContent = theme === "night" ? "切换为日间主题" : "切换为夜间主题";
+        if (!persist) {
+            return;
+        }
+        try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+        }
+        catch {
+            return;
+        }
     }
     bootstrapUIEffects() {
         this.createParticles();
