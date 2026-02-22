@@ -48,6 +48,7 @@ class VerifyLandingPage {
         this.pointerX = 0;
         this.pointerY = 0;
         this.hasPendingPointer = false;
+        this.isPointerOverCard = false;
         this.lastTiltX = 0;
         this.lastTiltY = 0;
         this.lastSpotX = 50;
@@ -197,24 +198,28 @@ class VerifyLandingPage {
                 this.applyTiltFromPointer();
             });
         };
-        this.card.addEventListener("mouseenter", () => {
-            refreshBounds();
-        });
-        this.card.addEventListener("mousemove", (event) => {
+        this.card.addEventListener("mouseenter", refreshBounds);
+        window.addEventListener("pointermove", (event) => {
+            if (event.pointerType === "touch") {
+                return;
+            }
             this.pointerX = event.clientX;
             this.pointerY = event.clientY;
-            this.hasPendingPointer = true;
-            scheduleTiltUpdate();
-        });
-        this.card.addEventListener("mouseleave", () => {
-            this.hasPendingPointer = false;
-            if (this.tiltRafId !== null) {
-                window.cancelAnimationFrame(this.tiltRafId);
-                this.tiltRafId = null;
+            this.isPointerOverCard = this.isPointInsideCard(this.pointerX, this.pointerY);
+            this.hasPendingPointer = this.isPointerOverCard;
+            if (!this.isPointerOverCard) {
+                if (this.tiltRafId !== null) {
+                    window.cancelAnimationFrame(this.tiltRafId);
+                    this.tiltRafId = null;
+                }
+                this.resetTilt();
+                return;
             }
-            this.resetTilt();
-        });
+            scheduleTiltUpdate();
+        }, { passive: true });
+        window.addEventListener("pointerdown", refreshBounds, { passive: true });
         window.addEventListener("resize", refreshBounds, { passive: true });
+        window.addEventListener("scroll", refreshBounds, { passive: true });
     }
     applyTiltFromPointer() {
         if (!this.hasPendingPointer) {
@@ -248,7 +253,24 @@ class VerifyLandingPage {
         this.card.style.setProperty("--spot-x", `${spotX.toFixed(1)}%`);
         this.card.style.setProperty("--spot-y", `${spotY.toFixed(1)}%`);
     }
+    isPointInsideCard(x, y) {
+        if (!this.tiltBounds) {
+            this.tiltBounds = this.card.getBoundingClientRect();
+        }
+        const bounds = this.tiltBounds;
+        if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+            return false;
+        }
+        return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+    }
     resetTilt() {
+        if (this.lastTiltX === 0 &&
+            this.lastTiltY === 0 &&
+            this.lastSpotX === 50 &&
+            this.lastSpotY === 35 &&
+            !this.card.classList.contains("is-tilting")) {
+            return;
+        }
         this.lastTiltX = 0;
         this.lastTiltY = 0;
         this.lastSpotX = 50;
@@ -458,6 +480,7 @@ class VerifyLandingPage {
             this.card.classList.remove("is-final-transitioning");
             this.card.classList.add("final-card");
             this.card.innerHTML = `
+        <div class="spotlight" id="spotlight"></div>
         <div class="final-shell" id="final-shell">
           <div class="final-mockery">
             <span class="stage-chip">Access Denied</span>
