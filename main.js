@@ -3,6 +3,8 @@ const RECAPTCHA_SCRIPT_ID = "recaptcha-api-script";
 const RECAPTCHA_SCRIPT_SRC = "https://www.recaptcha.net/recaptcha/api.js?render=explicit";
 const RECAPTCHA_POLL_INTERVAL_MS = 250;
 const RECAPTCHA_MAX_WAIT_MS = 5000;
+const FINAL_VIDEO_WEBM_URL = "https://assets.ericterminal.com/Rickroll.webm";
+const FINAL_VIDEO_MP4_FALLBACK_URL = "./rick.mp4";
 const STAGE_COPY = {
     "cf-1": {
         chip: "安全网关",
@@ -510,8 +512,8 @@ class VerifyLandingPage {
             return;
         }
         const video = document.createElement("video");
-        video.preload = "auto";
-        video.src = "./rick.mp4";
+        video.preload = "metadata";
+        video.src = FINAL_VIDEO_WEBM_URL;
         video.load();
         this.preloadedVideo = video;
     }
@@ -566,8 +568,9 @@ class VerifyLandingPage {
             </ul>
           </div>
           <div class="final-video" id="final-video" aria-hidden="true">
-            <video id="rick-video" controls loop playsinline preload="auto" autoplay muted>
-              <source src="./rick.mp4" type="video/mp4" />
+            <video id="rick-video" controls loop playsinline preload="metadata" autoplay muted>
+              <source src="${FINAL_VIDEO_WEBM_URL}" type="video/webm" />
+              <source src="${FINAL_VIDEO_MP4_FALLBACK_URL}" type="video/mp4" />
             </video>
             <button
               id="audio-toggle-button"
