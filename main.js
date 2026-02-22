@@ -312,38 +312,73 @@ class VerifyLandingPage {
         this.preloadedVideo = video;
     }
     showFinalStage() {
-        this.body.classList.add("final-stage");
-        this.card.classList.add("final-card");
-        this.card.classList.remove("is-tilting", "is-updating");
-        this.card.innerHTML = `
-      <div class="final-mockery">
-        <span class="stage-chip">Access Denied</span>
-        <strong>你被耍了</strong>
-        <ul class="final-list">
-          <li>恭喜你完成了五轮验证，但这里从来没有放行入口。</li>
-          <li>你刚刚点过的每一个验证码，都只是流程演出的一部分。</li>
-          <li>下次看到“验证进度 98%”，记得先怀疑一下页面动机。</li>
-        </ul>
-      </div>
-      <div class="final-video">
-        <video id="rick-video" autoplay muted loop playsinline preload="auto">
-          <source src="./rick.mp4" type="video/mp4" />
-        </video>
-      </div>
-    `;
-        const finalVideo = this.card.querySelector("#rick-video");
-        if (!finalVideo) {
+        if (this.card.classList.contains("final-card") || this.card.classList.contains("is-final-transitioning")) {
             return;
         }
-        const ensurePlay = () => {
-            const playPromise = finalVideo.play();
-            if (playPromise && typeof playPromise.catch === "function") {
-                playPromise.catch(() => {
-                    window.setTimeout(ensurePlay, 600);
-                });
+        this.body.classList.add("final-stage");
+        this.card.classList.remove("is-tilting", "is-updating");
+        this.card.classList.add("is-final-transitioning");
+        const transitionOutDuration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420;
+        window.setTimeout(() => {
+            this.card.classList.remove("is-final-transitioning");
+            this.card.classList.add("final-card");
+            this.card.innerHTML = `
+        <div class="final-shell" id="final-shell">
+          <div class="final-mockery">
+            <span class="stage-chip">Access Denied</span>
+            <strong>你被耍了</strong>
+            <ul class="final-list">
+              <li>恭喜你完成了五轮验证，但这里从来没有放行入口。</li>
+              <li>你刚刚点过的每一个验证码，都只是流程演出的一部分。</li>
+              <li>下次看到“验证进度 98%”，记得先怀疑一下页面动机。</li>
+            </ul>
+          </div>
+          <div class="rick-option-panel" id="rick-option-panel">
+            <p class="rick-option-copy">要不要切到 Never Gonna Give You Up？</p>
+            <button id="play-rick-button" class="play-rick-button" type="button">
+              播放 Never Gonna Give You Up
+            </button>
+            <p class="final-hint" id="final-hint">点一下按钮，下面会切出播放区域。</p>
+          </div>
+          <div class="final-video" id="final-video" aria-hidden="true">
+            <video id="rick-video" controls loop playsinline preload="auto">
+              <source src="./rick.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      `;
+            this.bindFinalPlayOption();
+        }, transitionOutDuration);
+    }
+    bindFinalPlayOption() {
+        const finalShell = this.card.querySelector("#final-shell");
+        const playButton = this.card.querySelector("#play-rick-button");
+        const finalVideoWrap = this.card.querySelector("#final-video");
+        const finalVideo = this.card.querySelector("#rick-video");
+        const finalHint = this.card.querySelector("#final-hint");
+        if (!finalShell || !playButton || !finalVideoWrap || !finalVideo) {
+            return;
+        }
+        playButton.addEventListener("click", () => {
+            playButton.disabled = true;
+            finalShell.classList.add("is-playing");
+            finalVideoWrap.setAttribute("aria-hidden", "false");
+            if (finalHint) {
+                finalHint.textContent = "正在加载 Never Gonna Give You Up...";
             }
-        };
-        ensurePlay();
+            window.setTimeout(() => {
+                finalVideo.currentTime = 0;
+                finalVideo.muted = false;
+                const playPromise = finalVideo.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                    playPromise.catch(() => {
+                        if (finalHint) {
+                            finalHint.textContent = "浏览器阻止自动播放，请点击视频控件继续。";
+                        }
+                    });
+                }
+            }, 220);
+        }, { once: true });
     }
 }
 const start = () => {
