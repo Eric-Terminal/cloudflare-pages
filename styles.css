@@ -164,10 +164,8 @@ body.theme-night .grid-layer {
 .page-shell {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
   padding: 32px 16px;
 }
 
@@ -237,9 +235,17 @@ body.theme-night .spotlight {
   margin-bottom: 24px;
 }
 
+.header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .stage-chip {
   display: inline-flex;
   align-items: center;
+  height: 34px;
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 12px;
@@ -314,19 +320,12 @@ body.theme-night .helper {
   border-top-color: rgba(133, 164, 221, 0.45);
 }
 
-.theme-bar {
-  width: min(700px, 100%);
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 4px;
-}
-
 .theme-toggle {
   border: 1px solid rgba(118, 161, 255, 0.38);
   color: #2852b8;
   background: rgba(255, 255, 255, 0.58);
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   padding: 0;
   display: inline-flex;
@@ -361,8 +360,8 @@ body.theme-night .helper {
 
 .theme-icon {
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -530,6 +529,16 @@ body.theme-night .theme-toggle:hover {
 
   .helper {
     font-size: 0.84rem;
+  }
+
+  .stage-chip {
+    height: 32px;
+    padding: 7px 12px;
+  }
+
+  .theme-toggle {
+    width: 32px;
+    height: 32px;
   }
 }
 
