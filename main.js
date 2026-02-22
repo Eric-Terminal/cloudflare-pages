@@ -520,7 +520,7 @@ class VerifyLandingPage {
             this.card.classList.add("final-card");
             this.card.innerHTML = `
         <div class="spotlight" id="spotlight"></div>
-        <div class="final-shell" id="final-shell">
+        <div class="final-shell is-playing" id="final-shell">
           <div class="final-mockery">
             <span class="stage-chip">Access Denied</span>
             <strong>你被耍了</strong>
@@ -530,52 +530,64 @@ class VerifyLandingPage {
               <li>下次看到“验证进度 98%”，记得先怀疑一下页面动机。</li>
             </ul>
           </div>
-          <div class="rick-option-panel" id="rick-option-panel">
-            <p class="rick-option-copy">要不要切到 Never Gonna Give You Up？</p>
-            <button id="play-rick-button" class="play-rick-button" type="button">
-              播放 Never Gonna Give You Up
+          <div class="final-video-controls">
+            <p class="rick-option-copy">Never Gonna Give You Up 已自动播放（静音）。</p>
+            <button id="unmute-rick-button" class="play-rick-button" type="button">
+              开启声音
             </button>
-            <p class="final-hint" id="final-hint">点一下按钮，下面会切出播放区域。</p>
+            <p class="final-hint" id="final-hint">若浏览器拦截自动播放，请点击视频控件继续。</p>
           </div>
           <div class="final-video" id="final-video" aria-hidden="true">
-            <video id="rick-video" controls loop playsinline preload="auto">
+            <video id="rick-video" controls loop playsinline preload="auto" autoplay muted>
               <source src="./rick.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
       `;
-            this.bindFinalPlayOption();
+            this.bindFinalVideoAutoPlay();
         }, transitionOutDuration);
     }
-    bindFinalPlayOption() {
+    bindFinalVideoAutoPlay() {
         const finalShell = this.card.querySelector("#final-shell");
-        const playButton = this.card.querySelector("#play-rick-button");
+        const unmuteButton = this.card.querySelector("#unmute-rick-button");
         const finalVideoWrap = this.card.querySelector("#final-video");
         const finalVideo = this.card.querySelector("#rick-video");
         const finalHint = this.card.querySelector("#final-hint");
-        if (!finalShell || !playButton || !finalVideoWrap || !finalVideo) {
+        if (!finalShell || !unmuteButton || !finalVideoWrap || !finalVideo) {
             return;
         }
-        playButton.addEventListener("click", () => {
-            playButton.disabled = true;
-            finalShell.classList.add("is-playing");
-            finalVideoWrap.setAttribute("aria-hidden", "false");
-            if (finalHint) {
-                finalHint.textContent = "正在加载 Never Gonna Give You Up...";
+        finalShell.classList.add("is-playing");
+        finalVideoWrap.setAttribute("aria-hidden", "false");
+        finalVideo.defaultMuted = true;
+        finalVideo.muted = true;
+        finalVideo.currentTime = 0;
+        const startMutedPlayback = () => {
+            const playPromise = finalVideo.play();
+            if (playPromise && typeof playPromise.catch === "function") {
+                playPromise.catch(() => {
+                    if (finalHint) {
+                        finalHint.textContent = "浏览器阻止自动播放，请点击视频控件开始播放。";
+                    }
+                });
             }
-            window.setTimeout(() => {
-                finalVideo.currentTime = 0;
-                finalVideo.muted = false;
-                const playPromise = finalVideo.play();
-                if (playPromise && typeof playPromise.catch === "function") {
-                    playPromise.catch(() => {
-                        if (finalHint) {
-                            finalHint.textContent = "浏览器阻止自动播放，请点击视频控件继续。";
-                        }
-                    });
-                }
-            }, 220);
-        }, { once: true });
+        };
+        startMutedPlayback();
+        finalVideo.addEventListener("loadeddata", startMutedPlayback, { once: true });
+        unmuteButton.addEventListener("click", () => {
+            finalVideo.muted = false;
+            const playPromise = finalVideo.play();
+            if (playPromise && typeof playPromise.catch === "function") {
+                playPromise.catch(() => {
+                    if (finalHint) {
+                        finalHint.textContent = "无法自动开启声音，请使用视频控件解除静音。";
+                    }
+                });
+            }
+            unmuteButton.disabled = true;
+            if (finalHint) {
+                finalHint.textContent = "已尝试开启声音，可在视频控件中继续调整。";
+            }
+        });
     }
 }
 const start = () => {

@@ -485,7 +485,7 @@ body.theme-night .theme-toggle:hover {
   line-height: 1.65;
 }
 
-.rick-option-panel {
+.final-video-controls {
   margin-top: 22px;
   padding: 18px 18px 16px;
   border: 1px solid rgba(163, 190, 255, 0.26);
@@ -563,15 +563,6 @@ body.theme-night .theme-toggle:hover {
     margin-top 0.45s ease;
 }
 
-.final-shell.is-playing .rick-option-panel {
-  opacity: 0;
-  transform: translateY(-26px);
-  max-height: 0;
-  margin-top: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 .final-shell.is-playing .final-video {
   margin-top: 20px;
   opacity: 1;
@@ -587,7 +578,7 @@ body.theme-night .theme-toggle:hover {
   object-fit: cover;
 }
 
-body.theme-night .rick-option-panel {
+body.theme-night .final-video-controls {
   border-color: rgba(136, 171, 244, 0.31);
   background: rgba(16, 30, 57, 0.64);
 }
