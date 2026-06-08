@@ -57,7 +57,7 @@ const LOCALE_COPY = {
             "恭喜你完成了五轮验证，但这里从来没有放行入口。",
             "你刚刚点过的每一个验证码，都只是流程演出的一部分。",
             "下次看到“验证进度 98%”，记得先怀疑一下页面动机。",
-            "后面补的：个人主页是真懒得写（骗你的我UI换了3次差不多100次代码提交但是坑人没有变过），但是有个真博客可以看看 <a href=\"https://blog.ericterminal.com\" target=\"_blank\" style=\"color: #8ab7ff; text-decoration: underline;\">blog.ericterminal.com</a>，这个真的没有诈骗了",
+            "后面补的：个人主页是真懒得写（骗你的我UI换了3次差不多100次代码提交但是坑人没有变过），但是有个真博客可以看看 <a href=\"https://blog.ericterminal.com\" target=\"_blank\" style=\"color: #8ab7ff; text-decoration: underline;\">blog.ericterminal.com</a>，<a href=\"/pgp/\" style=\"color: #8ab7ff; text-decoration: underline;\">PGP 公钥</a>也在这里，这个真的没有诈骗了",
         ],
         stageCopy: {
             "cf-1": {
@@ -129,7 +129,7 @@ const LOCALE_COPY = {
             "You cleared five rounds, but there was never an allow path.",
             "Every captcha you clicked was just part of the show.",
             "Next time you see \"Verification 98%\", question the page motive first.",
-            "P.S. I'm too lazy to build a real homepage (just kidding, I redesigned the UI 3 times and made about 100 commits, but the trolling never changed), but there is a real blog you can check out: <a href=\"https://blog.ericterminal.com\" target=\"_blank\" style=\"color: #8ab7ff; text-decoration: underline;\">blog.ericterminal.com</a>. No scam this time, seriously.",
+            "P.S. I'm too lazy to build a real homepage (just kidding, I redesigned the UI 3 times and made about 100 commits, but the trolling never changed), but there is a real blog you can check out: <a href=\"https://blog.ericterminal.com\" target=\"_blank\" style=\"color: #8ab7ff; text-decoration: underline;\">blog.ericterminal.com</a>, plus my <a href=\"/pgp/\" style=\"color: #8ab7ff; text-decoration: underline;\">PGP public key</a>. No scam this time, seriously.",
         ],
         stageCopy: {
             "cf-1": {
